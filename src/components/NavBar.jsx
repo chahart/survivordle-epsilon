@@ -70,6 +70,9 @@ export default function NavBar({ lightMode, onToggleLight, colorblind, onToggleC
           <NavLink to="/unlimited" className={({ isActive }) => `nav-tab${isActive ? " active" : ""}`}>
             Unlimited
           </NavLink>
+          <NavLink to="/connections" className={() => `nav-tab${location.pathname.startsWith("/connections") ? " active" : ""}`}>
+            Connections
+          </NavLink>
           <NavLink to="/recall" className={() => `nav-tab${location.pathname.startsWith("/recall") ? " active" : ""}`}>
             Recall
           </NavLink>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import CSS, { TAB_CSS, SUBTAB_CSS, PRIVACY_CSS, STATS_PAGE_CSS, ABOUT_CSS, FOOTER_CSS, RECALL_CSS, SANDWICH_CSS } from "./shared/styles";
+import CSS, { TAB_CSS, SUBTAB_CSS, PRIVACY_CSS, STATS_PAGE_CSS, ABOUT_CSS, FOOTER_CSS, RECALL_CSS, SANDWICH_CSS, CONNECTIONS_CSS } from "./shared/styles";
 import NavBar from "./components/NavBar";
 import BBNavBar from "./components/BBNavBar";
 import Footer from "./components/Footer";
@@ -17,6 +17,7 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import Recall from "./pages/Recall";
 import Sandwich from "./pages/Sandwich";
+import Connections from "./pages/Connections";
 import BB from "./pages/BB";
 import BBRecall from "./pages/BBRecall";
 import BBSandwich from "./pages/BBSandwich";
@@ -114,7 +115,7 @@ export default function App() {
   if (loading) return (
     <>
       <style>{CSS}</style>
-      <style>{TAB_CSS}{SUBTAB_CSS}{PRIVACY_CSS}{STATS_PAGE_CSS}{ABOUT_CSS}{FOOTER_CSS}{RECALL_CSS}{SANDWICH_CSS}</style>
+      <style>{TAB_CSS}{SUBTAB_CSS}{PRIVACY_CSS}{STATS_PAGE_CSS}{ABOUT_CSS}{FOOTER_CSS}{RECALL_CSS}{SANDWICH_CSS}{CONNECTIONS_CSS}</style>
       <div className="page"><div className="loading">🔥 Loading the tribe…</div></div>
     </>
   );
@@ -122,7 +123,7 @@ export default function App() {
   return (
     <>
       <style>{CSS}</style>
-      <style>{TAB_CSS}{SUBTAB_CSS}{PRIVACY_CSS}{STATS_PAGE_CSS}{ABOUT_CSS}{FOOTER_CSS}{RECALL_CSS}{SANDWICH_CSS}</style>
+      <style>{TAB_CSS}{SUBTAB_CSS}{PRIVACY_CSS}{STATS_PAGE_CSS}{ABOUT_CSS}{FOOTER_CSS}{RECALL_CSS}{SANDWICH_CSS}{CONNECTIONS_CSS}</style>
       <style>{lightMode ? "body{background:#f5f0e8}" : "body{background:#0a0a0a}"}</style>
       <div className={lightMode ? "light" : ""}>
 
@@ -164,6 +165,9 @@ export default function App() {
             <Route path="/sandwich/archive"   element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
             <Route path="/sandwich/unlimited" element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
             <Route path="/sandwich/stats"     element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
+            <Route path="/connections"         element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/archive" element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/stats"   element={<Connections colorblind={colorblind} />} />
             <Route path="/bb"           element={<BB colorblind={colorblind} />} />
             <Route path="/bb/archive"   element={<BB colorblind={colorblind} />} />
             <Route path="/bb/unlimited" element={<BB colorblind={colorblind} />} />

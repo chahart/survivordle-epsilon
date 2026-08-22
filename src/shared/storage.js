@@ -157,6 +157,49 @@ export function saveSandwichUnlimitedGame({ won, guessCount }) {
   return s;
 }
 
+// ── Connections storage ───────────────────────────────────────────────────────
+const CONNECTIONS_KEY = "survivordle_connections_state";
+
+export function loadConnectionsStorage() {
+  try { return JSON.parse(localStorage.getItem(CONNECTIONS_KEY)) || {}; }
+  catch { return {}; }
+}
+
+export function saveConnectionsStorage(data) {
+  try { localStorage.setItem(CONNECTIONS_KEY, JSON.stringify(data)); }
+  catch {}
+}
+
+export function loadTodayConnectionsGame(weekNum) {
+  const s = loadConnectionsStorage();
+  if (s.weekNum === weekNum) return s;
+  return null;
+}
+
+export function saveConnectionsMidGame({ weekNum, guesses, solvedGroups, mistakes }) {
+  const s = loadConnectionsStorage();
+  saveConnectionsStorage({ ...s, weekNum, guessObjects: guesses, solvedGroups, mistakes, gameOver: false });
+}
+
+export function saveConnectionsCompletedGame({ weekNum, won, mistakes, guesses, solvedGroups }) {
+  const s = loadConnectionsStorage();
+  const stats = s.stats || { played: 0, wins: 0, currentStreak: 0, maxStreak: 0, dist: {} };
+  stats.played += 1;
+  if (won) {
+    stats.wins += 1;
+    stats.currentStreak += 1;
+    stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
+    stats.dist[mistakes] = (stats.dist[mistakes] || 0) + 1;
+  } else {
+    stats.currentStreak = 0;
+  }
+  saveConnectionsStorage({ weekNum, won, mistakes, guessObjects: guesses, solvedGroups, gameOver: true, stats });
+}
+
+export function loadConnectionsStats() {
+  return loadConnectionsStorage().stats || { played: 0, wins: 0, currentStreak: 0, maxStreak: 0, dist: {} };
+}
+
 // ── BB Sandwich storage ───────────────────────────────────────────────────────
 const BB_SANDWICH_KEY = "bb_sandwich_state";
 

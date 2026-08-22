@@ -1,0 +1,14 @@
+{
+  "startDate": "2026-08-24",
+  "puzzles": [
+    {
+      "title": "Sample Puzzle",
+      "groups": [
+        { "difficulty": 1, "category": "Sole Survivors", "items": ["Richard Hatch", "Tina Wesson", "Ethan Zohn", "Sandra Diaz-Twine"] },
+        { "difficulty": 2, "category": "Found a Hidden Immunity Idol", "items": ["Russell Hantz", "Parvati Shallow", "Tony Vlachos", "Ozzy Lusth"] },
+        { "difficulty": 3, "category": "Season 1 Castaways", "items": ["Rudy Boesch", "Sean Kenniff", "Colleen Haskell", "Gervase Peterson"] },
+        { "difficulty": 4, "category": "Three-Time Players", "items": ["Rob Mariano", "Amber Mariano", "Cirie Fields", "Stephenie LaGrossa"] }
+      ]
+    }
+  ]
+}

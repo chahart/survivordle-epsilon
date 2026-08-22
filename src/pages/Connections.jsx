@@ -1,0 +1,303 @@
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  getDailyConnectionsPuzzle, getConnectionsPuzzleForWeek, getConnectionsWeekNumber,
+  getDateRangeForConnectionsWeek, CONNECTIONS_MAX_MISTAKES,
+} from "../shared/connectionsLogic";
+import {
+  loadTodayConnectionsGame, saveConnectionsMidGame, saveConnectionsCompletedGame,
+  loadConnectionsStats,
+} from "../shared/storage";
+import { msUntilMidnightET } from "../shared/gameLogic";
+import ConnectionsGame from "../components/ConnectionsGame";
+import useSEO from "../shared/useSEO";
+
+// ── Daily mode ─────────────────────────────────────────────────────────────────
+function ConnectionsDaily({ colorblind }) {
+  const navigate = useNavigate();
+  const weekNum = getConnectionsWeekNumber();
+  const puzzle = useMemo(() => getDailyConnectionsPuzzle(), [weekNum]);
+  const [saved] = useState(() => loadTodayConnectionsGame(weekNum));
+
+  // Auto-refresh at midnight ET (only actually changes puzzle on week boundary)
+  useEffect(() => {
+    const timer = setTimeout(() => window.location.reload(), msUntilMidnightET());
+    return () => clearTimeout(timer);
+  }, []);
+
+  function handleMidGame({ guesses, solvedGroups, mistakes }) {
+    saveConnectionsMidGame({ weekNum, guesses, solvedGroups, mistakes });
+  }
+
+  function handleComplete({ won, mistakes, guesses, solvedGroups }) {
+    saveConnectionsCompletedGame({ weekNum, won, mistakes, guesses, solvedGroups });
+  }
+
+  if (!puzzle) return <div className="loading">⛓️ Loading the tribe council…</div>;
+
+  return (
+    <>
+      <div className="mode-banner">
+        <div className="mode-banner-left">
+          <span className="mode-banner-label">Connections Weekly</span>
+          <span className="mode-banner-title">⛓️ Puzzle #{weekNum}</span>
+        </div>
+      </div>
+      <ConnectionsGame
+        key={weekNum}
+        puzzle={puzzle}
+        mode="connections_daily"
+        weekNum={weekNum}
+        colorblind={colorblind}
+        onMidGame={handleMidGame}
+        onComplete={handleComplete}
+        onNavigateStats={() => navigate("/connections/stats")}
+        initialGuessHistory={saved?.guessObjects || []}
+        initialSolvedGroups={saved?.solvedGroups || []}
+        initialMistakes={saved?.mistakes || 0}
+        initialGameOver={saved?.gameOver || false}
+        initialWon={saved?.won || false}
+      />
+    </>
+  );
+}
+
+// ── Archive mode ───────────────────────────────────────────────────────────────
+function ConnectionsArchive({ colorblind }) {
+  const navigate = useNavigate();
+  const [selectedWeek, setSelectedWeek] = useState(null);
+  const weekNum = getConnectionsWeekNumber();
+  const pastWeeks = Array.from({ length: weekNum - 1 }, (_, i) => weekNum - 1 - i);
+
+  const selectedPuzzle = selectedWeek !== null ? getConnectionsPuzzleForWeek(selectedWeek) : null;
+
+  if (selectedWeek !== null && selectedPuzzle) {
+    return (
+      <>
+        <div className="mode-banner">
+          <div className="mode-banner-left">
+            <span className="mode-banner-label">Connections Archive</span>
+            <span className="mode-banner-title">Puzzle #{selectedWeek} · {getDateRangeForConnectionsWeek(selectedWeek)}</span>
+          </div>
+          <button className="archive-play-btn" style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600 }} onClick={() => setSelectedWeek(null)}>
+            ← Back to Archive
+          </button>
+        </div>
+        <ConnectionsGame
+          key={selectedWeek}
+          puzzle={selectedPuzzle}
+          mode="connections_archive"
+          weekNum={selectedWeek}
+          colorblind={colorblind}
+          onNavigateStats={() => navigate("/connections/stats")}
+          onNavigateDaily={() => navigate("/connections")}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <p className="modal-body" style={{ textAlign: "center", marginBottom: "20px" }}>
+        Play any past Connections puzzle. Archive games don't affect your stats or streak.
+      </p>
+
+      {pastWeeks.length === 0 ? (
+        <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "14px" }}>
+          No past puzzles yet — check back next week!
+        </p>
+      ) : (
+        <div className="archive-list">
+          {pastWeeks.map(n => (
+            <div key={n} className="archive-item" onClick={() => setSelectedWeek(n)}>
+              <div className="archive-item-left">
+                <span className="archive-item-num">#{n}</span>
+                <span className="archive-item-date">{getDateRangeForConnectionsWeek(n)}</span>
+              </div>
+              <button className="archive-play-btn">Play</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────────
+function DistBars({ dist }) {
+  const max = Math.max(...Object.values(dist), 1);
+  return (
+    <>
+      <div className="sp-sub-title" style={{ marginTop: "20px" }}>Mistake Distribution</div>
+      {Array.from({ length: CONNECTIONS_MAX_MISTAKES + 1 }, (_, i) => i).map(n => {
+        const count = dist[n] || 0;
+        const w = count > 0 ? `${Math.max(Math.round((count / max) * 100), 4)}%` : "0%";
+        return (
+          <div key={n} className="stat-row">
+            <span className="stat-label">{n}</span>
+            <div className="stat-bar-wrap">
+              <div className="stat-bar" style={{ width: w, background: "#3a9188", border: "1px solid #6fc4b9" }}>
+                {count > 0 && <span className="stat-bar-count">{count}</span>}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+function StatsSection({ stats, label, showStreak }) {
+  const winPct = stats.played ? Math.round((stats.wins / stats.played) * 100) : 0;
+  const cells = showStreak
+    ? [[stats.played, "Played"], [`${winPct}%`, "Win %"], [stats.currentStreak, "Streak"], [stats.maxStreak, "Max Streak"]]
+    : [[stats.played, "Played"], [`${winPct}%`, "Win %"], [stats.wins, "Wins"], [stats.played - stats.wins, "Losses"]];
+
+  return (
+    <div style={{ marginBottom: "32px" }}>
+      <div className="sp-sub-title">{label}</div>
+      {stats.played === 0 ? (
+        <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "13px", marginTop: "12px" }}>
+          No games yet
+        </p>
+      ) : (
+        <>
+          <div className="stats-grid" style={{ marginTop: "12px", marginBottom: "12px" }}>
+            {cells.map(([val, lbl]) => (
+              <div className="stats-grid-item" key={lbl}>
+                <span className="stats-grid-num">{val}</span>
+                <span className="stats-grid-label">{lbl}</span>
+              </div>
+            ))}
+          </div>
+          {showStreak && <DistBars dist={stats.dist || {}} />}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ConnectionsStats() {
+  const daily = loadConnectionsStats();
+
+  return (
+    <div>
+      <StatsSection stats={daily} label="Weekly" showStreak />
+    </div>
+  );
+}
+
+// ── "What is Connections?" info popover ───────────────────────────────────────
+function ConnectionsInfoPopover() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  return (
+    <div className="recall-info-wrap" ref={ref}>
+      <button
+        className="recall-info-btn"
+        onClick={() => setOpen(o => !o)}
+        aria-label="What is Connections?"
+        aria-expanded={open}
+      >
+        ⓘ <span className="recall-info-label">What is Connections?</span>
+      </button>
+
+      {open && (
+        <div className="recall-info-popover" role="dialog" aria-label="What is Connections?">
+          <p className="recall-info-heading">Find the four groups</p>
+          <p className="recall-info-body">
+            16 tiles, 4 secret groups of 4. Select four tiles and hit <strong>Submit</strong> to guess
+            a group. Categories range from straightforward to tricky — watch out for tiles that
+            seem to fit more than one group.
+          </p>
+          <div className="recall-info-scoring">
+            <div className="recall-info-score-row">
+              <span className="recall-info-field">🟨 Straightforward</span>
+              <span className="recall-info-pts">Easiest group</span>
+            </div>
+            <div className="recall-info-score-row">
+              <span className="recall-info-field">🟩 Medium</span>
+              <span className="recall-info-pts">&nbsp;</span>
+            </div>
+            <div className="recall-info-score-row">
+              <span className="recall-info-field">🟦 Tricky</span>
+              <span className="recall-info-pts">&nbsp;</span>
+            </div>
+            <div className="recall-info-score-row">
+              <span className="recall-info-field">🟪 Tough</span>
+              <span className="recall-info-pts">Hardest group</span>
+            </div>
+          </div>
+          <p className="recall-info-body" style={{ marginTop: "8px" }}>
+            You get <strong>4 mistakes</strong> before the game ends.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Root Connections page ──────────────────────────────────────────────────────
+export default function Connections({ colorblind }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useSEO({
+    title: "Survivordle Connections: Group the Castaways",
+    description: "Find four groups of four Survivor-themed tiles in this weekly Connections-style puzzle.",
+    canonical: "https://survivordle.com/connections",
+  });
+
+  const path = location.pathname.replace(/\/$/, "");
+  const activeTab = path === "/connections/archive" ? "archive"
+                  : path === "/connections/stats"   ? "stats"
+                  : "daily";
+
+  return (
+    <>
+      <header className="header">
+        <div className="logo">
+          <span className="logo-surv">SURV</span>
+          <span className="logo-torch">
+            <span className="logo-torch-flame">🔥</span>
+            <span className="logo-torch-stem" />
+          </span>
+          <span className="logo-vor">VOR</span>
+          <span className="logo-dle">DLE</span>
+        </div>
+        <div className="torch-row">
+          <div className="torch-line" />
+          <div className="torch-line r" />
+        </div>
+        <div className="tagline">Connections Mode &nbsp;·&nbsp; Find the four groups</div>
+      </header>
+
+      <div className="ul-tabs" style={{ position: "relative" }}>
+        <button className={`ul-tab${activeTab === "daily"     ? " active" : ""}`} onClick={() => navigate("/connections")}>
+          ⛓️ Weekly
+        </button>
+        <button className={`ul-tab${activeTab === "archive" ? " active" : ""}`} onClick={() => navigate("/connections/archive")}>
+          📁 Archive
+        </button>
+        <button className={`ul-tab${activeTab === "stats"   ? " active" : ""}`} onClick={() => navigate("/connections/stats")}>
+          📊 Stats
+        </button>
+        <ConnectionsInfoPopover />
+      </div>
+
+      {activeTab === "daily"   && <ConnectionsDaily   colorblind={colorblind} />}
+      {activeTab === "archive" && <ConnectionsArchive colorblind={colorblind} />}
+      {activeTab === "stats"   && <ConnectionsStats />}
+    </>
+  );
+}
