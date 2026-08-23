@@ -4,10 +4,10 @@
     {
       "title": "Sample Puzzle",
       "groups": [
-        { "difficulty": 1, "category": "Sole Survivors", "items": ["Richard Hatch", "Tina Wesson", "Ethan Zohn", "Sandra Diaz-Twine"] },
-        { "difficulty": 2, "category": "Found a Hidden Immunity Idol", "items": ["Russell Hantz", "Parvati Shallow", "Tony Vlachos", "Ozzy Lusth"] },
-        { "difficulty": 3, "category": "Season 1 Castaways", "items": ["Rudy Boesch", "Sean Kenniff", "Colleen Haskell", "Gervase Peterson"] },
-        { "difficulty": 4, "category": "Three-Time Players", "items": ["Rob Mariano", "Amber Mariano", "Cirie Fields", "Stephenie LaGrossa"] }
+        { "difficulty": 1, "category": "SOLE SURVIVORS", "items": ["RICHARD HATCH FOR TAX FRAUD LMAO", "TINA WESSON", "ETHAN ZOHN", "SANDRA DIAZ-TWINE"] },
+        { "difficulty": 2, "category": "FOUND A HIDDEN IMMUNITY IDOL", "items": ["RUSSELL HANTZ", "PARVATI SHALLOW", "TONY VLACHOS", "OZZY LUSTH"] },
+        { "difficulty": 3, "category": "SEASON 1 CASTAWAYS", "items": ["RUDY BOESCH", "SEAN KENNIFF", "COLLEEN HASKELL", "GERVASE PETERSON"] },
+        { "difficulty": 4, "category": "THREE-TIME PLAYERS", "items": ["ROB MARIANO", "AMBER MARIANO", "CIRIE FIELDS", "STEPHENIE LAGROSSA"] }
       ]
     }
   ]

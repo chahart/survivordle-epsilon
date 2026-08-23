@@ -1095,25 +1095,30 @@ export const CONNECTIONS_CSS = `
   .cx-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 1fr;
     gap: 8px;
     margin-bottom: 16px;
   }
   @media (max-width: 500px) {
-    .cx-grid { gap: 6px; }
+    .cx-grid { gap: 6px; grid-auto-rows: 72px; }
   }
   .cx-tile {
     background: var(--tile-bg, rgba(255,255,255,0.04));
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 14px 6px;
+    height: 100%;
     min-height: 64px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
+    overflow: hidden;
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: 0.3px;
     color: var(--text2);
     cursor: pointer;
     user-select: none;
@@ -1127,6 +1132,20 @@ export const CONNECTIONS_CSS = `
     transform: scale(1.06);
   }
   .cx-tile.cx-solved { cursor: default; opacity: 0; pointer-events: none; }
+  .cx-tile.cx-bounce { animation: cxBounce 0.4s ease; animation-fill-mode: both; }
+  @keyframes cxBounce {
+    0%   { transform: scale(1.06) translateY(0); }
+    30%  { transform: scale(1.14) translateY(-10px); }
+    55%  { transform: scale(1.02) translateY(0); }
+    75%  { transform: scale(1.08) translateY(-4px); }
+    100% { transform: scale(1.06) translateY(0); }
+  }
+  .cx-tile.cx-shuffle { animation: cxShuffle 0.28s ease; animation-fill-mode: both; }
+  @keyframes cxShuffle {
+    0%   { transform: scale(1) rotate(0deg); }
+    40%  { transform: scale(0.93) rotate(-1.5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
   .cx-tile.cx-shake { animation: cxShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
   @keyframes cxShake {
     10%, 90% { transform: translateX(-2px) rotate(-1deg); }
@@ -1161,13 +1180,6 @@ export const CONNECTIONS_CSS = `
     0%   { opacity: 0; transform: scale(0.7) translateY(-10px); }
     60%  { opacity: 1; transform: scale(1.04) translateY(0); }
     100% { opacity: 1; transform: scale(1) translateY(0); }
-  }
-  .cx-solved-badge {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    opacity: 0.75;
-    margin-bottom: 2px;
   }
   .cx-solved-category {
     font-family: 'Bebas Neue', sans-serif;
@@ -1213,6 +1225,54 @@ export const CONNECTIONS_CSS = `
     40%  { transform: scale(1.7); }
     100% { transform: scale(1); }
   }
+  .cx-mistake-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    color: var(--text2);
+  }
+
+  .cx-continue-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 12px;
+    animation: cxOverlayIn 0.25s ease;
+  }
+  @keyframes cxOverlayIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .cx-continue-prompt {
+    text-align: center;
+    background: var(--modal-bg, var(--bg2));
+    border: 1px solid var(--modal-border, var(--border));
+    border-radius: 12px;
+    padding: 24px 22px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 24px 64px var(--shadow, rgba(0,0,0,0.4));
+    animation: cxContinuePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes cxContinuePop {
+    0%   { opacity: 0; transform: scale(0.85) translateY(10px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .cx-continue-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
 
   .cx-toast {
     text-align: center;
@@ -1255,6 +1315,11 @@ export const CONNECTIONS_CSS = `
     color: var(--bg, #0a0a0a);
     border-color: var(--text2);
   }
+  .cx-action-btn.cx-give-up {
+    color: #f0a89c;
+    border-color: #b3392c;
+  }
+  .cx-action-btn.cx-give-up:hover:not(:disabled) { background: rgba(179,57,44,0.12); border-color: #d4574a; }
 
 `;
 
