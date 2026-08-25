@@ -200,6 +200,31 @@ export function loadConnectionsStats() {
   return loadConnectionsStorage().stats || { played: 0, wins: 0, currentStreak: 0, maxStreak: 0, dist: {} };
 }
 
+// ── Custom Connections history (local only — the link itself is the source of truth) ──
+const CUSTOM_CONNECTIONS_HISTORY_KEY = "survivordle_custom_connections_history";
+const CUSTOM_CONNECTIONS_HISTORY_CAP = 50;
+
+export function loadCustomConnectionsHistory() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_CONNECTIONS_HISTORY_KEY)) || []; }
+  catch { return []; }
+}
+
+export function saveCustomConnectionsToHistory({ code, title }) {
+  const history = loadCustomConnectionsHistory().filter(entry => entry.code !== code);
+  history.unshift({ code, title: title || "", createdAt: Date.now() });
+  const capped = history.length > CUSTOM_CONNECTIONS_HISTORY_CAP ? history.slice(0, CUSTOM_CONNECTIONS_HISTORY_CAP) : history;
+  try { localStorage.setItem(CUSTOM_CONNECTIONS_HISTORY_KEY, JSON.stringify(capped)); }
+  catch {}
+  return capped;
+}
+
+export function deleteCustomConnectionsFromHistory(code) {
+  const history = loadCustomConnectionsHistory().filter(entry => entry.code !== code);
+  try { localStorage.setItem(CUSTOM_CONNECTIONS_HISTORY_KEY, JSON.stringify(history)); }
+  catch {}
+  return history;
+}
+
 // ── BB Sandwich storage ───────────────────────────────────────────────────────
 const BB_SANDWICH_KEY = "bb_sandwich_state";
 

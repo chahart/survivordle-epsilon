@@ -1104,9 +1104,9 @@ export const CONNECTIONS_CSS = `
   }
   .cx-tile {
     background: var(--tile-bg, rgba(255,255,255,0.04));
-    border: 1px solid var(--border);
+    border: 1px solid rgba(232,116,42,0.35);
     border-radius: 8px;
-    padding: 14px 6px;
+    padding: 8px 4px;
     height: 100%;
     min-height: 64px;
     box-sizing: border-box;
@@ -1116,19 +1116,28 @@ export const CONNECTIONS_CSS = `
     text-align: center;
     overflow: hidden;
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.15;
     font-weight: 800;
     letter-spacing: 0.3px;
     color: var(--text2);
     cursor: pointer;
     user-select: none;
+    word-break: break-word;
     transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease;
   }
-  .cx-tile:hover:not(.cx-solved) { border-color: var(--text3); transform: scale(1.03); }
+  /* Longer tile text shrinks to keep every tile the same size */
+  .cx-tile.cx-tile-sm { font-size: 12px; }
+  .cx-tile.cx-tile-xs { font-size: 10px; letter-spacing: 0.1px; }
+  @media (max-width: 500px) {
+    .cx-tile.cx-tile-sm { font-size: 10.5px; }
+    .cx-tile.cx-tile-xs { font-size: 9px; }
+  }
+  .cx-tile:hover:not(.cx-solved) { border-color: #e8742a; transform: scale(1.03); }
   .cx-tile.cx-selected {
-    background: var(--text2);
-    color: var(--bg, #0a0a0a);
-    border-color: var(--text2);
+    background: linear-gradient(135deg, #e8742a, #b03020);
+    color: #fff;
+    border-color: #e8742a;
     transform: scale(1.06);
   }
   .cx-tile.cx-solved { cursor: default; opacity: 0; pointer-events: none; }
@@ -1193,14 +1202,14 @@ export const CONNECTIONS_CSS = `
     font-weight: 600;
   }
 
-  .cx-diff-1 { background: #4a3f05; border: 1px solid #d4b106; color: #f2dc7a; }
-  .cx-diff-2 { background: #12332f; border: 1px solid #3a9188; color: #8fd6cc; }
-  .cx-diff-3 { background: #142a40; border: 1px solid #3b6ea5; color: #9cc4ea; }
+  .cx-diff-1 { background: #16401a; border: 1px solid #4aaa4a; color: #a8e8a8; }
+  .cx-diff-2 { background: #4a2a05; border: 1px solid #e8742a; color: #f5b57a; }
+  .cx-diff-3 { background: #2e1240; border: 1px solid #9a5cc4; color: #d4aeee; }
   .cx-diff-4 { background: #3a1712; border: 1px solid #b3392c; color: #f0a89c; }
 
-  .cx-tile.cx-diff-1-flash { background: #4a3f05; border-color: #d4b106; color: #f2dc7a; }
-  .cx-tile.cx-diff-2-flash { background: #12332f; border-color: #3a9188; color: #8fd6cc; }
-  .cx-tile.cx-diff-3-flash { background: #142a40; border-color: #3b6ea5; color: #9cc4ea; }
+  .cx-tile.cx-diff-1-flash { background: #16401a; border-color: #4aaa4a; color: #a8e8a8; }
+  .cx-tile.cx-diff-2-flash { background: #4a2a05; border-color: #e8742a; color: #f5b57a; }
+  .cx-tile.cx-diff-3-flash { background: #2e1240; border-color: #9a5cc4; color: #d4aeee; }
   .cx-tile.cx-diff-4-flash { background: #3a1712; border-color: #b3392c; color: #f0a89c; }
 
   .cx-mistakes {
@@ -1311,15 +1320,105 @@ export const CONNECTIONS_CSS = `
   .cx-action-btn:hover:not(:disabled) { border-color: var(--text3); }
   .cx-action-btn:disabled { opacity: 0.4; cursor: default; }
   .cx-action-btn.cx-submit {
-    background: var(--text2);
-    color: var(--bg, #0a0a0a);
-    border-color: var(--text2);
+    background: linear-gradient(135deg, #e8742a, #b03020);
+    color: #fff;
+    border-color: transparent;
+  }
+  .cx-action-btn.cx-submit:hover:not(:disabled) { border-color: transparent; filter: brightness(1.08); }
+  .cx-action-btn.cx-submit:disabled {
+    background: var(--border);
+    color: var(--text3);
   }
   .cx-action-btn.cx-give-up {
     color: #f0a89c;
     border-color: #b3392c;
   }
   .cx-action-btn.cx-give-up:hover:not(:disabled) { background: rgba(179,57,44,0.12); border-color: #d4574a; }
+
+  /* ── Custom puzzle builder ── */
+  .cx-form { max-width: 560px; margin: 0 auto; }
+  .cx-form-field { margin-bottom: 20px; }
+  .cx-form-label {
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+  .cx-form-diff-label { text-transform: none; letter-spacing: 0; font-weight: 500; opacity: 0.8; }
+  .cx-form-group {
+    border-left: 3px solid var(--border);
+    padding-left: 14px;
+    margin-bottom: 22px;
+  }
+  .cx-form-group.cx-diff-1 { border-left-color: #4aaa4a; }
+  .cx-form-group.cx-diff-2 { border-left-color: #e8742a; }
+  .cx-form-group.cx-diff-3 { border-left-color: #9a5cc4; }
+  .cx-form-group.cx-diff-4 { border-left-color: #b3392c; }
+  .cx-form-items {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+  @media (max-width: 480px) {
+    .cx-form-items { grid-template-columns: 1fr; }
+  }
+  .cx-form-errors {
+    background: var(--cell-wrong-bg, rgba(179,57,44,0.1));
+    border: 1px solid var(--cell-wrong-border, #b3392c);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .cx-form-error {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    color: var(--cell-wrong-text, #f0a89c);
+    line-height: 1.6;
+  }
+  .cx-form-done {
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+    animation: cxSolvedIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .cx-form-done-heading {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 1px;
+    color: #e8742a;
+    margin-bottom: 8px;
+  }
+  .cx-form-link-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .cx-form-link-row .search-input { min-width: 200px; }
+  .cx-history-heading {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 1px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin: 32px 0 12px;
+    text-align: center;
+  }
+  .cx-history-delete {
+    background: transparent;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 4px 8px;
+  }
+  .cx-history-delete:hover { color: #d4574a; }
 
 `;
 

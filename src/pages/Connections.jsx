@@ -1,15 +1,18 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import {
   getDailyConnectionsPuzzle, getConnectionsPuzzleForWeek, getConnectionsWeekNumber,
   getDateRangeForConnectionsWeek, CONNECTIONS_MAX_MISTAKES,
 } from "../shared/connectionsLogic";
+import { loadCustomPuzzle } from "../shared/customConnections";
+import { logConnectionsEvent } from "../shared/supabase";
 import {
   loadTodayConnectionsGame, saveConnectionsMidGame, saveConnectionsCompletedGame,
-  loadConnectionsStats,
+  loadConnectionsStats, loadCustomConnectionsHistory, deleteCustomConnectionsFromHistory,
 } from "../shared/storage";
 import { msUntilMidnightET } from "../shared/gameLogic";
 import ConnectionsGame from "../components/ConnectionsGame";
+import CustomPuzzleForm from "../components/CustomPuzzleForm";
 import useSEO from "../shared/useSEO";
 
 // ── Daily mode ─────────────────────────────────────────────────────────────────
@@ -31,6 +34,12 @@ function ConnectionsDaily({ colorblind }) {
 
   function handleComplete({ won, mistakes, guesses, solvedGroups }) {
     saveConnectionsCompletedGame({ weekNum, won, mistakes, guesses, solvedGroups });
+    // solve_order is the difficulty (1-4) of each group in the order it was
+    // solved, e.g. [2,1,4,3] — mistakes here is exactly what's on the board
+    // at the moment the loss/win is recorded, before any "keep going" bonus
+    // play, which is intentionally never logged.
+    const solveOrder = solvedGroups.map(gi => puzzle.groups[gi]?.difficulty).filter(Boolean);
+    logConnectionsEvent({ weekNum, won, mistakes, solveOrder });
   }
 
   if (!puzzle) return <div className="loading">⛓️ Loading the tribe council…</div>;
@@ -40,7 +49,7 @@ function ConnectionsDaily({ colorblind }) {
       <div className="mode-banner">
         <div className="mode-banner-left">
           <span className="mode-banner-label">Connections Weekly</span>
-          <span className="mode-banner-title">⛓️ Puzzle #{weekNum}</span>
+          <span className="mode-banner-title">⛓️ Puzzle #{weekNum}{puzzle.title ? ` - ${puzzle.title}` : ""}</span>
         </div>
       </div>
       <ConnectionsGame
@@ -77,7 +86,7 @@ function ConnectionsArchive({ colorblind }) {
         <div className="mode-banner">
           <div className="mode-banner-left">
             <span className="mode-banner-label">Connections Archive</span>
-            <span className="mode-banner-title">Puzzle #{selectedWeek} · {getDateRangeForConnectionsWeek(selectedWeek)}</span>
+            <span className="mode-banner-title">Puzzle #{selectedWeek}{selectedPuzzle.title ? ` - ${selectedPuzzle.title}` : ""}</span>
           </div>
           <button className="archive-play-btn" style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600 }} onClick={() => setSelectedWeek(null)}>
             ← Back to Archive
@@ -108,16 +117,126 @@ function ConnectionsArchive({ colorblind }) {
         </p>
       ) : (
         <div className="archive-list">
-          {pastWeeks.map(n => (
-            <div key={n} className="archive-item" onClick={() => setSelectedWeek(n)}>
-              <div className="archive-item-left">
-                <span className="archive-item-num">#{n}</span>
-                <span className="archive-item-date">{getDateRangeForConnectionsWeek(n)}</span>
+          {pastWeeks.map(n => {
+            const p = getConnectionsPuzzleForWeek(n);
+            return (
+              <div key={n} className="archive-item" onClick={() => setSelectedWeek(n)}>
+                <div className="archive-item-left">
+                  <span className="archive-item-num">#{n}{p.title ? ` - ${p.title}` : ""}</span>
+                  <span className="archive-item-date">{getDateRangeForConnectionsWeek(n)}</span>
+                </div>
+                <button className="archive-play-btn">Play</button>
               </div>
-              <button className="archive-play-btn">Play</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
+      )}
+    </>
+  );
+}
+
+// ── Custom mode ────────────────────────────────────────────────────────────────
+function ConnectionsCustom({ colorblind }) {
+  const navigate = useNavigate();
+  const { code } = useParams();
+  const [history, setHistory] = useState(() => loadCustomConnectionsHistory());
+  const [puzzle, setPuzzle] = useState(null);
+  const [loadState, setLoadState] = useState(code ? "loading" : "idle"); // "loading" | "ready" | "notfound" | "idle"
+
+  useEffect(() => {
+    if (!code) return;
+    let cancelled = false;
+    loadCustomPuzzle(code).then(p => {
+      if (cancelled) return;
+      setPuzzle(p);
+      setLoadState(p ? "ready" : "notfound");
+    });
+    return () => { cancelled = true; };
+  }, [code]);
+
+  // Reset to a fresh "loading" state whenever the code itself changes
+  // (e.g. navigating from one custom puzzle link straight to another).
+  const [lastCode, setLastCode] = useState(code);
+  if (code !== lastCode) {
+    setLastCode(code);
+    setPuzzle(null);
+    setLoadState(code ? "loading" : "idle");
+  }
+
+  if (code) {
+    if (loadState === "loading") {
+      return <div className="loading">⛓️ Loading the puzzle…</div>;
+    }
+
+    if (loadState === "notfound") {
+      return (
+        <>
+          <p className="modal-body" style={{ textAlign: "center", marginBottom: "20px" }}>
+            This puzzle link looks broken or incomplete — it may have been copied wrong.
+          </p>
+          <div style={{ textAlign: "center" }}>
+            <button className="cx-action-btn cx-submit" onClick={() => navigate("/connections/custom")}>
+              Make Your Own Puzzle
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <div className="mode-banner">
+          <div className="mode-banner-left">
+            <span className="mode-banner-label">Connections Custom</span>
+            <span className="mode-banner-title">{puzzle.title || "A custom puzzle"}</span>
+          </div>
+          <button className="archive-play-btn" style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600 }} onClick={() => navigate("/connections/custom")}>
+            ← Back
+          </button>
+        </div>
+        <ConnectionsGame
+          key={code}
+          puzzle={puzzle}
+          mode="connections_custom"
+          weekNum={null}
+          customCode={code}
+          colorblind={colorblind}
+          onNavigateDaily={() => navigate("/connections")}
+        />
+      </>
+    );
+  }
+
+  function handleDelete(entryCode) {
+    setHistory(deleteCustomConnectionsFromHistory(entryCode));
+  }
+
+  return (
+    <>
+      <p className="modal-body" style={{ textAlign: "center", marginBottom: "20px" }}>
+        Build your own 4×4 puzzle and share the link with friends. Survivor-themed or not — up to you.
+        Custom games don't affect your stats.
+      </p>
+
+      <CustomPuzzleForm onCreated={() => setHistory(loadCustomConnectionsHistory())} />
+
+      {history.length > 0 && (
+        <>
+          <div className="cx-history-heading">Your Puzzles</div>
+          <div className="archive-list">
+            {history.map(entry => (
+              <div key={entry.code} className="archive-item">
+                <div className="archive-item-left" style={{ cursor: "pointer" }} onClick={() => navigate(`/connections/custom/${entry.code}`)}>
+                  <span className="archive-item-num">{entry.title || "Untitled Puzzle"}</span>
+                  <span className="archive-item-date">{new Date(entry.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                </div>
+                <button className="cx-history-delete" onClick={() => handleDelete(entry.code)} aria-label="Delete from history">
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </>
   );
@@ -259,8 +378,9 @@ export default function Connections({ colorblind }) {
   });
 
   const path = location.pathname.replace(/\/$/, "");
-  const activeTab = path === "/connections/archive" ? "archive"
-                  : path === "/connections/stats"   ? "stats"
+  const activeTab = path === "/connections/archive"        ? "archive"
+                  : path === "/connections/stats"          ? "stats"
+                  : path.startsWith("/connections/custom")  ? "custom"
                   : "daily";
 
   return (
@@ -289,6 +409,9 @@ export default function Connections({ colorblind }) {
         <button className={`ul-tab${activeTab === "archive" ? " active" : ""}`} onClick={() => navigate("/connections/archive")}>
           📁 Archive
         </button>
+        <button className={`ul-tab${activeTab === "custom"  ? " active" : ""}`} onClick={() => navigate("/connections/custom")}>
+          ✏️ Custom
+        </button>
         <button className={`ul-tab${activeTab === "stats"   ? " active" : ""}`} onClick={() => navigate("/connections/stats")}>
           📊 Stats
         </button>
@@ -297,6 +420,7 @@ export default function Connections({ colorblind }) {
 
       {activeTab === "daily"   && <ConnectionsDaily   colorblind={colorblind} />}
       {activeTab === "archive" && <ConnectionsArchive colorblind={colorblind} />}
+      {activeTab === "custom"  && <ConnectionsCustom  colorblind={colorblind} />}
       {activeTab === "stats"   && <ConnectionsStats />}
     </>
   );

@@ -165,9 +165,11 @@ export default function App() {
             <Route path="/sandwich/archive"   element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
             <Route path="/sandwich/unlimited" element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
             <Route path="/sandwich/stats"     element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
-            <Route path="/connections"         element={<Connections colorblind={colorblind} />} />
-            <Route path="/connections/archive" element={<Connections colorblind={colorblind} />} />
-            <Route path="/connections/stats"   element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections"               element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/archive"       element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/custom"        element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/custom/:code"  element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/stats"         element={<Connections colorblind={colorblind} />} />
             <Route path="/bb"           element={<BB colorblind={colorblind} />} />
             <Route path="/bb/archive"   element={<BB colorblind={colorblind} />} />
             <Route path="/bb/unlimited" element={<BB colorblind={colorblind} />} />

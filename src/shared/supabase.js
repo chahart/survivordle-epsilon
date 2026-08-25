@@ -290,6 +290,72 @@ export async function fetchRecallDailyStats(puzzleNames) {
   } catch { return null; }
 }
 
+export async function logConnectionsEvent({ weekNum, won, mistakes, solveOrder }) {
+  try {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const h = now.getHours();
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} `
+      + `${pad(h % 12 || 12)}:${pad(now.getMinutes())}${h < 12 ? "am" : "pm"}`;
+    await fetch(`${SUPABASE_URL}/rest/v1/connections_events`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({
+        week_num: weekNum,
+        won,
+        mistakes,
+        solve_order: solveOrder,
+        timestamp,
+      }),
+    });
+  } catch {
+    // Fail silently — never disrupt gameplay
+  }
+}
+
+// ── Custom Connections puzzles ────────────────────────────────────────────────
+export async function saveCustomPuzzleRemote({ code, title, groups }) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/custom_connections_puzzles`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({ code, title, groups }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchCustomPuzzleRemote(code) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/custom_connections_puzzles?code=eq.${encodeURIComponent(code)}&select=title,groups`,
+      {
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows[0] || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchRecallGlobalStats() {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_recall_global_stats`, {

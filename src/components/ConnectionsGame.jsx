@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { CONNECTIONS_MAX_MISTAKES, checkGuess, shuffleTiles } from "../shared/connectionsLogic";
+import { getCustomPuzzleUrl } from "../shared/customConnections";
 
 export default function ConnectionsGame({
   puzzle,
   mode,
   weekNum,
+  customCode,
   colorblind,
   onComplete,
   onMidGame,
@@ -19,8 +21,22 @@ export default function ConnectionsGame({
   const groups = puzzle.groups;
   const allItems = useMemo(() => groups.flatMap(g => g.items), [groups]);
 
+  // Dedupe and drop any out-of-range indices from restored/saved state so a
+  // corrupted save can never hide a real group or leave the board stuck.
+  function sanitizeSolved(idxList) {
+    const seen = new Set();
+    const clean = [];
+    for (const gi of idxList || []) {
+      if (groups[gi] && !seen.has(gi)) {
+        seen.add(gi);
+        clean.push(gi);
+      }
+    }
+    return clean;
+  }
+
   const [tileOrder, setTileOrder] = useState(() => shuffleTiles(allItems));
-  const [solvedGroups, setSolvedGroups] = useState(initialSolvedGroups || []);
+  const [solvedGroups, setSolvedGroups] = useState(() => sanitizeSolved(initialSolvedGroups));
   const [selected, setSelected] = useState([]);
   const [mistakes, setMistakes] = useState(initialMistakes || 0);
   const [guessHistory, setGuessHistory] = useState(initialGuessHistory || []);
@@ -35,13 +51,14 @@ export default function ConnectionsGame({
   const [askContinue, setAskContinue] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const [bonusMode, setBonusMode] = useState(false);
+  const [bonusSolved, setBonusSolved] = useState(false);
   const [shuffling, setShuffling] = useState(false);
   const toastTimer = useRef(null);
   const revealTimer = useRef(null);
   const shuffleTimer = useRef(null);
 
   const solvedItemSet = useMemo(
-    () => new Set(solvedGroups.flatMap(gi => groups[gi].items)),
+    () => new Set(solvedGroups.flatMap(gi => groups[gi]?.items || [])),
     [solvedGroups, groups]
   );
   const remainingTiles = tileOrder.filter(item => !solvedItemSet.has(item));
@@ -62,8 +79,9 @@ export default function ConnectionsGame({
   // or mid bonus-round) but some groups never got shown, reveal them now so a
   // finished game never leaves any group hidden.
   useEffect(() => {
-    if (initialGameOver && (initialSolvedGroups?.length || 0) < groups.length) {
-      revealRemaining(initialSolvedGroups || []);
+    const cleanInitial = sanitizeSolved(initialSolvedGroups);
+    if (initialGameOver && cleanInitial.length < groups.length) {
+      revealRemaining();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,23 +109,39 @@ export default function ConnectionsGame({
 
   // Reveal the remaining unsolved groups one at a time, slowly —
   // a pause, then a group, then a pause, then the next group, and so on.
+  // Each tick re-derives "what's still missing" from live state rather than
+  // trusting a fixed snapshot, so it's immune to being called more than once
+  // (StrictMode double-invoking effects, a stray double-click, etc.) — extra
+  // calls just converge on the same end state instead of dropping a group.
   const REVEAL_FIRST_GAP_MS = 1000;
   const REVEAL_GAP_MS = 2000;
-  function revealRemaining(currentSolved) {
-    const remainingIdx = groups.map((_, i) => i).filter(i => !currentSolved.includes(i));
-    if (remainingIdx.length === 0) return;
+  const revealInFlight = useRef(false);
+  // A reveal chain, once started, owns the pacing until it's genuinely done.
+  // A repeat call while one is already running (StrictMode's double effect
+  // invocation, a stray double-click, etc.) is a plain no-op — the running
+  // chain re-derives "what's missing" from live state on every tick, so it
+  // will still reveal everything correctly on its own steady cadence.
+  function revealRemaining() {
+    if (revealInFlight.current) return;
+    revealInFlight.current = true;
     setRevealing(true);
-    let step = 0;
-    function revealNext() {
-      setSolvedGroups(prev => prev.includes(remainingIdx[step]) ? prev : [...prev, remainingIdx[step]]);
-      step += 1;
-      if (step < remainingIdx.length) {
-        revealTimer.current = setTimeout(revealNext, REVEAL_GAP_MS);
-      } else {
-        setRevealing(false);
-      }
+
+    function scheduleNext(delay) {
+      revealTimer.current = setTimeout(() => {
+        setSolvedGroups(prev => {
+          const missing = groups.map((_, i) => i).find(i => !prev.includes(i));
+          const next = missing === undefined ? prev : [...prev, missing];
+          if (next.length < groups.length) {
+            scheduleNext(REVEAL_GAP_MS);
+          } else {
+            revealInFlight.current = false;
+            setRevealing(false);
+          }
+          return next;
+        });
+      }, delay);
     }
-    revealTimer.current = setTimeout(revealNext, REVEAL_FIRST_GAP_MS);
+    scheduleNext(REVEAL_FIRST_GAP_MS);
   }
 
   function handleKeepGoing() {
@@ -117,13 +151,13 @@ export default function ConnectionsGame({
 
   function handleStopHere() {
     setAskContinue(false);
-    revealRemaining(solvedGroups);
+    revealRemaining();
   }
 
   function handleGiveUp() {
     setBonusMode(false);
     setSelected([]);
-    revealRemaining(solvedGroups);
+    revealRemaining();
   }
 
   function submitGuess() {
@@ -158,7 +192,10 @@ export default function ConnectionsGame({
           setLocked(false);
           if (bonusMode) {
             // Result was already recorded as a loss — bonus play doesn't touch stats.
-            if (newSolved.length === 4) setBonusMode(false);
+            if (newSolved.length === 4) {
+              setBonusMode(false);
+              setBonusSolved(true);
+            }
           } else if (newSolved.length === 4) {
             finish(newSolved, true, mistakes);
           } else {
@@ -207,8 +244,13 @@ export default function ConnectionsGame({
   function handleShare() {
     const label = mode === "connections_archive"
       ? `Survivordle Connections Archive #${weekNum}`
+      : mode === "connections_custom"
+      ? `Survivordle Connections (Custom)`
       : `Survivordle Connections #${weekNum}`;
-    const text = `${label}\nNumber of guesses: ${guessHistory.length}\nSurvivordle.com/connections`;
+    const link = mode === "connections_custom" && customCode
+      ? getCustomPuzzleUrl(customCode)
+      : "survivordle.com/connections";
+    const text = `${label}\nNumber of guesses: ${guessHistory.length}\n${link}`;
     navigator.clipboard?.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -217,15 +259,12 @@ export default function ConnectionsGame({
 
   const bannerLabel = mode === "connections_archive"
     ? `Connections Archive`
+    : mode === "connections_custom"
+    ? `Connections Custom`
     : `Connections #${weekNum}`;
 
   return (
     <div className="cx-board" style={{ position: "relative" }}>
-      {puzzle.title && (
-        <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "13px", marginBottom: "10px" }}>
-          {puzzle.title}
-        </p>
-      )}
 
       {/* Solved groups, in the order they were guessed */}
       {solvedGroups.map(gi => {
@@ -258,10 +297,11 @@ export default function ConnectionsGame({
               : shuffling
               ? { animationDelay: `${(idx % 4) * 25}ms` }
               : undefined;
+            const lengthClass = item.length > 24 ? " cx-tile-xs" : item.length > 16 ? " cx-tile-sm" : "";
             return (
               <div
                 key={item}
-                className={`cx-tile${isSelected ? " cx-selected" : ""}${isShaking ? " cx-shake" : ""}${isBouncing ? " cx-bounce" : ""}${shuffling ? " cx-shuffle" : ""}${flashClass}`}
+                className={`cx-tile${lengthClass}${isSelected ? " cx-selected" : ""}${isShaking ? " cx-shake" : ""}${isBouncing ? " cx-bounce" : ""}${shuffling ? " cx-shuffle" : ""}${flashClass}`}
                 style={style}
                 onClick={() => toggleTile(item)}
               >
@@ -323,8 +363,8 @@ export default function ConnectionsGame({
       {gameOver && !askContinue && !revealing && !bonusMode && (
         <div className={`status-banner ${won ? "win" : "lose"}`}>
           {won
-            ? <>⛓️ {bannerLabel} — solved with {mistakes} mistake{mistakes !== 1 ? "s" : ""}!</>
-            : <>{bannerLabel} — out of guesses. {solvedGroups.length === 4 ? "Solved it anyway on bonus guesses!" : ""}</>
+            ? <>⛓️ {bannerLabel} solved with {mistakes} mistake{mistakes !== 1 ? "s" : ""}!</>
+            : <>{bannerLabel}: out of guesses. {bonusSolved ? "Solved it anyway on bonus guesses!" : ""}</>
           }
           <br />
           <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "10px", flexWrap: "wrap" }}>

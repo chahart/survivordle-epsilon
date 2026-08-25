@@ -1,5 +1,5 @@
 {
-  "startDate": "2026-08-24",
+  "startDate": "2026-08-17",
   "puzzles": [
     {
       "title": "Sample Puzzle",
@@ -8,6 +8,15 @@
         { "difficulty": 2, "category": "FOUND A HIDDEN IMMUNITY IDOL", "items": ["RUSSELL HANTZ", "PARVATI SHALLOW", "TONY VLACHOS", "OZZY LUSTH"] },
         { "difficulty": 3, "category": "SEASON 1 CASTAWAYS", "items": ["RUDY BOESCH", "SEAN KENNIFF", "COLLEEN HASKELL", "GERVASE PETERSON"] },
         { "difficulty": 4, "category": "THREE-TIME PLAYERS", "items": ["ROB MARIANO", "AMBER MARIANO", "CIRIE FIELDS", "STEPHENIE LAGROSSA"] }
+      ]
+    },
+    {
+      "title": "Demo Puzzle",
+      "groups": [
+        { "difficulty": 1, "category": "PRIMARY COLORS", "items": ["RED", "BLUE", "YELLOW", "GREEN"] },
+        { "difficulty": 2, "category": "DAYS OF THE WEEK", "items": ["MONDAY", "TUESDAY", "FRIDAY", "SUNDAY"] },
+        { "difficulty": 3, "category": "FARM ANIMALS", "items": ["COW", "PIG", "SHEEP", "HORSE"] },
+        { "difficulty": 4, "category": "___ CREAM", "items": ["ICE", "SUN", "WHIPPED", "SOUR"] }
       ]
     }
   ]
