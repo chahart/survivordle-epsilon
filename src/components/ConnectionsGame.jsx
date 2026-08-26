@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { CONNECTIONS_MAX_MISTAKES, checkGuess, shuffleTiles } from "../shared/connectionsLogic";
 import { getCustomPuzzleUrl } from "../shared/customConnections";
 
+const DIFF_EMOJI = { 1: "🟩", 2: "🟧", 3: "🟪", 4: "🟥" };
+
 export default function ConnectionsGame({
   puzzle,
   mode,
@@ -95,14 +97,14 @@ export default function ConnectionsGame({
     });
   }
 
-  function finish(newSolvedGroups, didWin, finalMistakes) {
+  function finish(newSolvedGroups, didWin, finalMistakes, finalGuesses) {
     setGameOver(true);
     setWon(didWin);
     onComplete?.({
       weekNum,
       won: didWin,
       mistakes: finalMistakes,
-      guesses: guessHistory,
+      guesses: finalGuesses,
       solvedGroups: newSolvedGroups,
     });
   }
@@ -197,7 +199,7 @@ export default function ConnectionsGame({
               setBonusSolved(true);
             }
           } else if (newSolved.length === 4) {
-            finish(newSolved, true, mistakes);
+            finish(newSolved, true, mistakes, newHistory);
           } else {
             onMidGame?.({ weekNum, guesses: newHistory, solvedGroups: newSolved, mistakes });
           }
@@ -221,7 +223,7 @@ export default function ConnectionsGame({
         } else if (newMistakes >= CONNECTIONS_MAX_MISTAKES) {
           // Loss is recorded now — continuing past this point (if they choose to)
           // is untracked bonus play and won't change this result.
-          finish(solvedGroups, false, newMistakes);
+          finish(solvedGroups, false, newMistakes, newHistory);
           setAskContinue(true);
         } else {
           onMidGame?.({ weekNum, guesses: newHistory, solvedGroups, mistakes: newMistakes });
@@ -250,7 +252,22 @@ export default function ConnectionsGame({
     const link = mode === "connections_custom" && customCode
       ? getCustomPuzzleUrl(customCode)
       : "survivordle.com/connections";
-    const text = `${label}\nNumber of guesses: ${guessHistory.length}\n${link}`;
+
+    // Clean win within the 4-mistake limit: NYT-style emoji grid, one row
+    // per guess, colored by which group each tile actually belongs to.
+    // Anything else (a loss, or solved only after burning all 4 mistakes
+    // and continuing on bonus guesses) shows a plain guess count instead —
+    // the emoji grid only makes sense when every guess counted the same way.
+    const resultLine = won
+      ? guessHistory.map(g =>
+          g.map(item => {
+            const gi = groups.findIndex(grp => grp.items.includes(item));
+            return DIFF_EMOJI[groups[gi]?.difficulty] || "⬜";
+          }).join("")
+        ).join("\n")
+      : `Number of guesses: ${guessHistory.length}`;
+
+    const text = `${label}\n${resultLine}\n${link}`;
     navigator.clipboard?.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
