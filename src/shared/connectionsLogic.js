@@ -2,35 +2,63 @@ import connectionsSchedule from "./connectionsSchedule.json";
 
 export const CONNECTIONS_MAX_MISTAKES = 4;
 
-// Fixed start date — must match startDate in connectionsSchedule.json
-const [CY, CM, CD] = connectionsSchedule.startDate.split("-").map(Number);
-export const CONNECTIONS_START_DATE = new Date(CY, CM - 1, CD);
-
-export function getConnectionsWeekNumber() {
-  const etDateStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-  const [y, m, d] = etDateStr.split("-").map(Number);
-  const todayUTC = Date.UTC(y, m - 1, d);
-  const startUTC = Date.UTC(CY, CM - 1, CD);
-  const daysSinceStart = Math.floor((todayUTC - startUTC) / 86400000);
-  return Math.floor(daysSinceStart / 7) + 1;
+function todayET() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // "YYYY-MM-DD"
 }
 
-export function getConnectionsPuzzleForWeek(weekNum) {
-  const idx = (weekNum - 1) % connectionsSchedule.puzzles.length;
-  return connectionsSchedule.puzzles[idx];
+// De-dupe by date (last entry for a given date wins — treat it as the "real"
+// puzzle for that day) and sort ascending, so puzzle #1 is the earliest date
+// authored regardless of any gaps between dates.
+function getSortedPuzzles() {
+  const byDate = new Map();
+  for (const p of connectionsSchedule.puzzles) {
+    if (p?.date) byDate.set(p.date, p);
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// Attaches a stable, date-order-based display number to a puzzle.
+function withPuzzleNumber(puzzle, sortedPuzzles) {
+  if (!puzzle) return null;
+  const puzzleNumber = sortedPuzzles.findIndex(p => p.date === puzzle.date) + 1;
+  return { ...puzzle, puzzleNumber };
+}
+
+// The live puzzle is the most recent one whose date is on or before today
+// (ET) — it stays live through any gap until the next dated puzzle's date
+// arrives, then flips over at midnight ET.
 export function getDailyConnectionsPuzzle() {
-  return getConnectionsPuzzleForWeek(getConnectionsWeekNumber());
+  const sorted = getSortedPuzzles();
+  const today = todayET();
+  let live = null;
+  for (const p of sorted) {
+    if (p.date <= today) live = p;
+    else break;
+  }
+  return withPuzzleNumber(live, sorted);
 }
 
-export function getDateRangeForConnectionsWeek(weekNum) {
-  const start = new Date(CONNECTIONS_START_DATE);
-  start.setDate(CONNECTIONS_START_DATE.getDate() + (weekNum - 1) * 7);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  const fmt = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${fmt(start)} – ${fmt(end)}, ${end.getFullYear()}`;
+export function getConnectionsPuzzleByDate(date) {
+  const sorted = getSortedPuzzles();
+  const puzzle = sorted.find(p => p.date === date);
+  return withPuzzleNumber(puzzle, sorted);
+}
+
+// All puzzles strictly before the currently-live one, newest first — what
+// the Archive tab lists. If no puzzle has gone live yet, the archive is empty.
+export function getPastConnectionsPuzzles() {
+  const sorted = getSortedPuzzles();
+  const live = getDailyConnectionsPuzzle();
+  if (!live) return [];
+  return sorted
+    .filter(p => p.date < live.date)
+    .map(p => withPuzzleNumber(p, sorted))
+    .reverse();
+}
+
+export function getDisplayDateForConnections(date) {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export function shuffleTiles(items) {

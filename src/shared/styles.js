@@ -1123,7 +1123,9 @@ export const CONNECTIONS_CSS = `
     color: var(--text2);
     cursor: pointer;
     user-select: none;
-    word-break: break-word;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    hyphens: none;
     transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease;
   }
   /* Longer tile text shrinks to keep every tile the same size */

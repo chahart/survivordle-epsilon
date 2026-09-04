@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import {
-  getDailyConnectionsPuzzle, getConnectionsPuzzleForWeek, getConnectionsWeekNumber,
-  getDateRangeForConnectionsWeek, CONNECTIONS_MAX_MISTAKES,
+  getDailyConnectionsPuzzle, getConnectionsPuzzleByDate, getPastConnectionsPuzzles,
+  getDisplayDateForConnections, CONNECTIONS_MAX_MISTAKES,
 } from "../shared/connectionsLogic";
 import { loadCustomPuzzle } from "../shared/customConnections";
 import { logConnectionsEvent } from "../shared/supabase";
@@ -18,45 +18,51 @@ import useSEO from "../shared/useSEO";
 // ── Daily mode ─────────────────────────────────────────────────────────────────
 function ConnectionsDaily({ colorblind }) {
   const navigate = useNavigate();
-  const weekNum = getConnectionsWeekNumber();
-  const puzzle = useMemo(() => getDailyConnectionsPuzzle(), [weekNum]);
-  const [saved] = useState(() => loadTodayConnectionsGame(weekNum));
+  const puzzle = useMemo(() => getDailyConnectionsPuzzle(), []);
+  const puzzleKey = puzzle?.date;
+  const [saved] = useState(() => puzzleKey ? loadTodayConnectionsGame(puzzleKey) : null);
 
-  // Auto-refresh at midnight ET (only actually changes puzzle on week boundary)
+  // Auto-refresh at midnight ET (only actually changes puzzle on a day a new one goes live)
   useEffect(() => {
     const timer = setTimeout(() => window.location.reload(), msUntilMidnightET());
     return () => clearTimeout(timer);
   }, []);
 
   function handleMidGame({ guesses, solvedGroups, mistakes }) {
-    saveConnectionsMidGame({ weekNum, guesses, solvedGroups, mistakes });
+    saveConnectionsMidGame({ weekNum: puzzleKey, guesses, solvedGroups, mistakes });
   }
 
   function handleComplete({ won, mistakes, guesses, solvedGroups }) {
-    saveConnectionsCompletedGame({ weekNum, won, mistakes, guesses, solvedGroups });
+    saveConnectionsCompletedGame({ weekNum: puzzleKey, won, mistakes, guesses, solvedGroups });
     // solve_order is the difficulty (1-4) of each group in the order it was
     // solved, e.g. [2,1,4,3] — mistakes here is exactly what's on the board
     // at the moment the loss/win is recorded, before any "keep going" bonus
     // play, which is intentionally never logged.
     const solveOrder = solvedGroups.map(gi => puzzle.groups[gi]?.difficulty).filter(Boolean);
-    logConnectionsEvent({ weekNum, won, mistakes, solveOrder });
+    logConnectionsEvent({ weekNum: puzzle.puzzleNumber, won, mistakes, solveOrder });
   }
 
-  if (!puzzle) return <div className="loading">⛓️ Loading the tribe council…</div>;
+  if (!puzzle) {
+    return (
+      <p className="modal-body" style={{ textAlign: "center" }}>
+        No puzzle has gone live yet — check back soon!
+      </p>
+    );
+  }
 
   return (
     <>
       <div className="mode-banner">
         <div className="mode-banner-left">
           <span className="mode-banner-label">Connections Weekly</span>
-          <span className="mode-banner-title">⛓️ Puzzle #{weekNum}{puzzle.title ? ` - ${puzzle.title}` : ""}</span>
+          <span className="mode-banner-title">⛓️ Puzzle #{puzzle.puzzleNumber}{puzzle.title ? ` - ${puzzle.title}` : ""}</span>
         </div>
       </div>
       <ConnectionsGame
-        key={weekNum}
+        key={puzzleKey}
         puzzle={puzzle}
         mode="connections_daily"
-        weekNum={weekNum}
+        weekNum={puzzle.puzzleNumber}
         colorblind={colorblind}
         onMidGame={handleMidGame}
         onComplete={handleComplete}
@@ -74,29 +80,28 @@ function ConnectionsDaily({ colorblind }) {
 // ── Archive mode ───────────────────────────────────────────────────────────────
 function ConnectionsArchive({ colorblind }) {
   const navigate = useNavigate();
-  const [selectedWeek, setSelectedWeek] = useState(null);
-  const weekNum = getConnectionsWeekNumber();
-  const pastWeeks = Array.from({ length: weekNum - 1 }, (_, i) => weekNum - 1 - i);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const pastPuzzles = useMemo(() => getPastConnectionsPuzzles(), []);
 
-  const selectedPuzzle = selectedWeek !== null ? getConnectionsPuzzleForWeek(selectedWeek) : null;
+  const selectedPuzzle = selectedDate !== null ? getConnectionsPuzzleByDate(selectedDate) : null;
 
-  if (selectedWeek !== null && selectedPuzzle) {
+  if (selectedDate !== null && selectedPuzzle) {
     return (
       <>
         <div className="mode-banner">
           <div className="mode-banner-left">
             <span className="mode-banner-label">Connections Archive</span>
-            <span className="mode-banner-title">Puzzle #{selectedWeek}{selectedPuzzle.title ? ` - ${selectedPuzzle.title}` : ""}</span>
+            <span className="mode-banner-title">Puzzle #{selectedPuzzle.puzzleNumber}{selectedPuzzle.title ? ` - ${selectedPuzzle.title}` : ""}</span>
           </div>
-          <button className="archive-play-btn" style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600 }} onClick={() => setSelectedWeek(null)}>
+          <button className="archive-play-btn" style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600 }} onClick={() => setSelectedDate(null)}>
             ← Back to Archive
           </button>
         </div>
         <ConnectionsGame
-          key={selectedWeek}
+          key={selectedDate}
           puzzle={selectedPuzzle}
           mode="connections_archive"
-          weekNum={selectedWeek}
+          weekNum={selectedPuzzle.puzzleNumber}
           colorblind={colorblind}
           onNavigateStats={() => navigate("/connections/stats")}
           onNavigateDaily={() => navigate("/connections")}
@@ -111,24 +116,21 @@ function ConnectionsArchive({ colorblind }) {
         Play any past Connections puzzle. Archive games don't affect your stats or streak.
       </p>
 
-      {pastWeeks.length === 0 ? (
+      {pastPuzzles.length === 0 ? (
         <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "14px" }}>
-          No past puzzles yet — check back next week!
+          No past puzzles yet — check back soon!
         </p>
       ) : (
         <div className="archive-list">
-          {pastWeeks.map(n => {
-            const p = getConnectionsPuzzleForWeek(n);
-            return (
-              <div key={n} className="archive-item" onClick={() => setSelectedWeek(n)}>
-                <div className="archive-item-left">
-                  <span className="archive-item-num">#{n}{p.title ? ` - ${p.title}` : ""}</span>
-                  <span className="archive-item-date">{getDateRangeForConnectionsWeek(n)}</span>
-                </div>
-                <button className="archive-play-btn">Play</button>
+          {pastPuzzles.map(p => (
+            <div key={p.date} className="archive-item" onClick={() => setSelectedDate(p.date)}>
+              <div className="archive-item-left">
+                <span className="archive-item-num">#{p.puzzleNumber}{p.title ? ` - ${p.title}` : ""}</span>
+                <span className="archive-item-date">{getDisplayDateForConnections(p.date)}</span>
               </div>
-            );
-          })}
+              <button className="archive-play-btn">Play</button>
+            </div>
+          ))}
         </div>
       )}
     </>

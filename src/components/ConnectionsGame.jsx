@@ -401,7 +401,7 @@ export default function ConnectionsGame({
           </div>
           {mode === "connections_daily" && (
             <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "13px", marginTop: "10px" }}>
-              Come back next week for Connections #{weekNum + 1}!
+              Come back soon for the next puzzle!
             </p>
           )}
         </div>

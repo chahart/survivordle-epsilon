@@ -1,7 +1,7 @@
 {
-  "startDate": "2026-08-17",
   "puzzles": [
     {
+      "date": "2026-08-17",
       "title": "Sample Puzzle",
       "groups": [
         { "difficulty": 1, "category": "SOLE SURVIVORS", "items": ["RICHARD HATCH FOR TAX FRAUD LMAO", "TINA WESSON", "ETHAN ZOHN", "SANDRA DIAZ-TWINE"] },
@@ -11,12 +11,13 @@
       ]
     },
     {
-      "title": "Demo Puzzle",
+      "date": "2026-08-24",
+      "title": "Intro to Survivordle Connections",
       "groups": [
-        { "difficulty": 1, "category": "PRIMARY COLORS", "items": ["RED", "BLUE", "YELLOW", "GREEN"] },
-        { "difficulty": 2, "category": "DAYS OF THE WEEK", "items": ["MONDAY", "TUESDAY", "FRIDAY", "SUNDAY"] },
-        { "difficulty": 3, "category": "FARM ANIMALS", "items": ["COW", "PIG", "SHEEP", "HORSE"] },
-        { "difficulty": 4, "category": "___ CREAM", "items": ["ICE", "SUN", "WHIPPED", "SOUR"] }
+        { "difficulty": 1, "category": "UNANIMOUS WINNERS", "items": ["ADAM KLEIN", "JEREMY COLLINS", "JOHN COCHRAN", "J.T. THOMAS"] },
+        { "difficulty": 2, "category": "PREMERGE VILLAINS", "items": ["COACH WADE", "COURTNEY YATES", "BOSTON ROB", "TYSON APOSTOL"] },
+        { "difficulty": 3, "category": "FIRST BOOTS", "items": ["CIERA EASTIN", "JENNA LEWIS", "JOHNNY FAIRPLAY", "TINA WESSON"] },
+        { "difficulty": 4, "category": "ONLY RETURNEES FROM THEIR SEASON", "items": ["BRENDA LOWE", "GENEVIEVE MUSHALUK", "JONATHAN YOUNG", "WENDELL HOLLAND"] }
       ]
     }
   ]
