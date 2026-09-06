@@ -1,16 +1,6 @@
 {
   "puzzles": [
     {
-      "date": "2026-08-17",
-      "title": "Sample Puzzle",
-      "groups": [
-        { "difficulty": 1, "category": "SOLE SURVIVORS", "items": ["RICHARD HATCH", "TINA WESSON", "ETHAN ZOHN", "SANDRA DIAZ-TWINE"] },
-        { "difficulty": 2, "category": "FOUND A HIDDEN IMMUNITY IDOL", "items": ["RUSSELL HANTZ", "PARVATI SHALLOW", "TONY VLACHOS", "OZZY LUSTH"] },
-        { "difficulty": 3, "category": "SEASON 1 CASTAWAYS", "items": ["RUDY BOESCH", "SEAN KENNIFF", "COLLEEN HASKELL", "GERVASE PETERSON"] },
-        { "difficulty": 4, "category": "THREE-TIME PLAYERS", "items": ["ROB MARIANO", "AMBER MARIANO", "CIRIE FIELDS", "STEPHENIE LAGROSSA"] }
-      ]
-    },
-    {
       "date": "2026-08-24",
       "title": "Intro to Survivordle Connections",
       "groups": [
