@@ -338,8 +338,8 @@ function ConnectionsInfoPopover() {
           <p className="recall-info-heading">Find the four groups</p>
           <p className="recall-info-body">
             16 tiles, 4 secret groups of 4. Select four tiles and hit <strong>Submit</strong> to guess
-            a group. Categories range from straightforward to tricky — watch out for tiles that
-            seem to fit more than one group.
+            a group. Each category has exactly four correct answers among the tiles — never more —
+            so watch out for tiles that seem to fit a category but actually belong to a different one.
           </p>
           <div className="recall-info-scoring">
             <div className="recall-info-score-row">
