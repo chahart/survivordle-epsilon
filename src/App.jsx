@@ -18,13 +18,14 @@ import BlogPost from "./pages/BlogPost";
 import Recall from "./pages/Recall";
 import Sandwich from "./pages/Sandwich";
 import Connections from "./pages/Connections";
+import ConnectionsFAQ from "./pages/ConnectionsFAQ";
 import BB from "./pages/BB";
 import BBRecall from "./pages/BBRecall";
 import BBSandwich from "./pages/BBSandwich";
 import BBHowToPlay from "./pages/BBHowToPlay";
 import BBFAQ from "./pages/BBFAQ";
 import BBStats from "./pages/BBStats";
-import { AnnouncementModal, BBAnnouncementModal } from "./components/Modals";
+import { AnnouncementModal, BBAnnouncementModal, ConnectionsAnnouncementModal } from "./components/Modals";
 
 const BANNER_KEY = "survivordle_announcement_sandwich_jun23";
 const BANNER_START  = new Date("2026-06-23T14:00:00Z");
@@ -33,6 +34,10 @@ const BANNER_EXPIRY = new Date("2026-06-24T14:00:00Z");
 const BB_BANNER_KEY = "survivordle_announcement_bb_promo_jul08";
 const BB_BANNER_START  = new Date("2026-07-08T12:00:00Z"); // Wed Jul 8, 8am ET
 const BB_BANNER_EXPIRY = new Date("2026-07-15T12:00:00Z"); // one week later
+
+// No expiry — this stays live indefinitely, dismissed once per visitor via localStorage.
+const CONNECTIONS_BANNER_KEY = "survivordle_announcement_connections_launch";
+const CONNECTIONS_BANNER_START = new Date("2026-09-08T00:00:00Z");
 
 const PUB_ID = import.meta.env.VITE_PLAYWIRE_PUB_ID;
 const WEBSITE_ID = import.meta.env.VITE_PLAYWIRE_WEBSITE_ID;
@@ -44,6 +49,7 @@ export default function App() {
   const [colorblind,       setColorblind]       = useState(false);
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [showBBAnnouncement, setShowBBAnnouncement] = useState(false);
+  const [showConnectionsAnnouncement, setShowConnectionsAnnouncement] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isBB = location.pathname === "/bb" || location.pathname.startsWith("/bb/");
@@ -92,6 +98,15 @@ export default function App() {
     }
   }, [loading, isBB]);
 
+  useEffect(() => {
+    if (loading) return;
+    const now = new Date();
+    if (!localStorage.getItem(CONNECTIONS_BANNER_KEY) && now >= CONNECTIONS_BANNER_START) {
+      const timer = setTimeout(() => setShowConnectionsAnnouncement(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
   function dismissAnnouncement() {
     localStorage.setItem(BANNER_KEY, "1");
     setShowAnnouncement(false);
@@ -110,6 +125,16 @@ export default function App() {
   function goToBB() {
     dismissBBAnnouncement();
     navigate("/bb");
+  }
+
+  function dismissConnectionsAnnouncement() {
+    localStorage.setItem(CONNECTIONS_BANNER_KEY, "1");
+    setShowConnectionsAnnouncement(false);
+  }
+
+  function goToConnections() {
+    dismissConnectionsAnnouncement();
+    navigate("/connections");
   }
 
   if (loading) return (
@@ -170,6 +195,7 @@ export default function App() {
             <Route path="/connections/custom"        element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/custom/:code"  element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/stats"         element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/faq"           element={<ConnectionsFAQ />} />
             <Route path="/bb"           element={<BB colorblind={colorblind} />} />
             <Route path="/bb/archive"   element={<BB colorblind={colorblind} />} />
             <Route path="/bb/unlimited" element={<BB colorblind={colorblind} />} />
@@ -198,6 +224,11 @@ export default function App() {
           <BBAnnouncementModal
             onClose={dismissBBAnnouncement}
             onPlayBB={goToBB}
+          />
+        ) : showConnectionsAnnouncement && !isBB ? (
+          <ConnectionsAnnouncementModal
+            onClose={dismissConnectionsAnnouncement}
+            onPlayConnections={goToConnections}
           />
         ) : null}
 

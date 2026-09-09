@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useLocation, useParams, Link } from "react-router-dom";
 import {
   getDailyConnectionsPuzzle, getConnectionsPuzzleByDate, getPastConnectionsPuzzles,
   getDisplayDateForConnections, CONNECTIONS_MAX_MISTAKES,
@@ -338,7 +338,7 @@ function ConnectionsInfoPopover() {
           <p className="recall-info-heading">Find the four groups</p>
           <p className="recall-info-body">
             16 tiles, 4 secret groups of 4. Select four tiles and hit <strong>Submit</strong> to guess
-            a group. Each category has exactly four correct answers among the tiles — never more —
+            a group. Each category has exactly four correct answers among the tiles, never more,
             so watch out for tiles that seem to fit a category but actually belong to a different one.
           </p>
           <div className="recall-info-scoring">
@@ -362,6 +362,9 @@ function ConnectionsInfoPopover() {
           <p className="recall-info-body" style={{ marginTop: "8px" }}>
             You get <strong>4 mistakes</strong> before the game ends.
           </p>
+          <p className="recall-info-body" style={{ marginTop: "8px" }}>
+            More questions? See the <Link to="/connections/faq">full FAQ</Link>.
+          </p>
         </div>
       )}
     </div>
@@ -374,10 +377,38 @@ export default function Connections({ colorblind }) {
   const location = useLocation();
 
   useSEO({
-    title: "Survivordle Connections: Group the Castaways",
-    description: "Find four groups of four Survivor-themed tiles in this weekly Connections-style puzzle.",
+    title: "Survivor Connections – Free Daily Puzzle Game | Survivordle",
+    description: "Play Survivor Connections, a free daily puzzle game where you group 16 Survivor-themed tiles into 4 hidden categories. New puzzle every Wednesday, plus an archive of past puzzles and custom puzzles you can make and share with friends.",
     canonical: "https://survivordle.com/connections",
+    image: "https://survivordle.com/connections-og-image.png",
   });
+
+  // JSON-LD structured data — helps search engines classify this page as a
+  // game (not, say, a news article about Survivor cast connections) and can
+  // surface rich results for game-intent searches like "Survivor Connections".
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Game",
+      "name": "Survivor Connections",
+      "alternateName": "Survivordle Connections",
+      "url": "https://survivordle.com/connections",
+      "description": "A free daily puzzle game where you group 16 Survivor-themed tiles into 4 hidden categories, inspired by NYT Connections. New puzzle every Wednesday.",
+      "genre": "Puzzle",
+      "gamePlatform": "Web Browser",
+      "applicationCategory": "Game",
+      "isAccessibleForFree": true,
+      "publisher": {
+        "@type": "Organization",
+        "name": "Survivordle",
+        "url": "https://survivordle.com"
+      }
+    });
+    document.head.appendChild(script);
+    return () => script.remove();
+  }, []);
 
   const path = location.pathname.replace(/\/$/, "");
   const activeTab = path === "/connections/archive"        ? "archive"

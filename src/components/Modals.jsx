@@ -46,6 +46,29 @@ export function BBAnnouncementModal({ onClose, onPlayBB }) {
   );
 }
 
+export function ConnectionsAnnouncementModal({ onClose, onPlayConnections }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h2 className="modal-title">What's New</h2>
+
+        <div className="modal-section-title">Introducing... Connections! ⛓️</div>
+        <p className="modal-body">
+          Find four groups of four Survivor-themed tiles in this Connections-style puzzle. A new puzzle drops every <strong>Wednesday</strong>.
+        </p>
+        <p className="modal-body">
+          Revisit past puzzles in the archive, build your own custom puzzle, and send the link to your friends to challenge them!
+        </p>
+
+        <button className="play-recall-btn" onClick={onPlayConnections}>
+          Play Connections →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function HowToPlayModal({ onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
