@@ -319,7 +319,7 @@ export async function logConnectionsEvent({ weekNum, won, mistakes, solveOrder }
 }
 
 // ── Custom Connections puzzles ────────────────────────────────────────────────
-export async function saveCustomPuzzleRemote({ code, title, groups }) {
+export async function saveCustomPuzzleRemote({ code, title, author, groups }) {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/custom_connections_puzzles`, {
       method: "POST",
@@ -329,7 +329,7 @@ export async function saveCustomPuzzleRemote({ code, title, groups }) {
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
         "Prefer": "return=minimal",
       },
-      body: JSON.stringify({ code, title, groups }),
+      body: JSON.stringify({ code, title, author, groups }),
     });
     return res.ok;
   } catch {
@@ -340,7 +340,7 @@ export async function saveCustomPuzzleRemote({ code, title, groups }) {
 export async function fetchCustomPuzzleRemote(code) {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/custom_connections_puzzles?code=eq.${encodeURIComponent(code)}&select=title,groups`,
+      `${SUPABASE_URL}/rest/v1/custom_connections_puzzles?code=eq.${encodeURIComponent(code)}&select=title,author,groups`,
       {
         headers: {
           "apikey": SUPABASE_ANON_KEY,

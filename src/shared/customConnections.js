@@ -3,6 +3,7 @@ import { saveCustomPuzzleRemote, fetchCustomPuzzleRemote } from "./supabase";
 export const CUSTOM_CATEGORY_MAX_LEN = 40;
 export const CUSTOM_ITEM_MAX_LEN = 30;
 export const CUSTOM_TITLE_MAX_LEN = 60;
+export const CUSTOM_AUTHOR_MAX_LEN = 40;
 
 const CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const CODE_LENGTH = 7;
@@ -22,19 +23,19 @@ export async function createCustomPuzzle(puzzle) {
   const groups = puzzle.groups.map(g => ({ difficulty: g.difficulty, category: g.category, items: g.items }));
   for (let attempt = 0; attempt < 2; attempt++) {
     const code = randomCode();
-    const ok = await saveCustomPuzzleRemote({ code, title: puzzle.title || "", groups });
+    const ok = await saveCustomPuzzleRemote({ code, title: puzzle.title || "", author: puzzle.author || "", groups });
     if (ok) return code;
   }
   return null;
 }
 
-// Returns { title, groups } in the same shape ConnectionsGame expects, or
+// Returns { title, author, groups } in the same shape ConnectionsGame expects, or
 // null if the code doesn't exist / the fetch fails / the stored row is malformed.
 export async function loadCustomPuzzle(code) {
   if (!code) return null;
   const row = await fetchCustomPuzzleRemote(code);
   if (!row) return null;
-  const puzzle = { title: row.title || "", groups: row.groups };
+  const puzzle = { title: row.title || "", author: row.author || "", groups: row.groups };
   if (!isStructurallyValid(puzzle)) return null;
   return puzzle;
 }
@@ -61,6 +62,10 @@ export function validateCustomPuzzle(formState) {
 
   if (formState?.title && formState.title.length > CUSTOM_TITLE_MAX_LEN) {
     errors.push(`Title must be ${CUSTOM_TITLE_MAX_LEN} characters or fewer.`);
+  }
+
+  if (formState?.author && formState.author.length > CUSTOM_AUTHOR_MAX_LEN) {
+    errors.push(`Author name must be ${CUSTOM_AUTHOR_MAX_LEN} characters or fewer.`);
   }
 
   if (groups.length !== 4) {
@@ -108,6 +113,7 @@ export function validateCustomPuzzle(formState) {
 export function buildPuzzleFromForm(formState) {
   return {
     title: (formState.title || "").trim(),
+    author: (formState.author || "").trim(),
     groups: formState.groups.map((g, i) => ({
       difficulty: i + 1,
       category: g.category.trim(),

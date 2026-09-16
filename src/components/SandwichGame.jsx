@@ -37,6 +37,7 @@ export default function SandwichGame({
   onComplete,
   onMidGame,
   onNavigateStats,
+  onNavigateConnections,
   onNavigateDaily,
   initialGuesses,
   initialGameOver,
@@ -266,6 +267,11 @@ export default function SandwichGame({
             {onNavigateStats && (
               <button className="share-btn" onClick={onNavigateStats}>
                 📊 Stats
+              </button>
+            )}
+            {onNavigateConnections && (
+              <button className="share-btn" onClick={onNavigateConnections}>
+                ⛓️ Connections
               </button>
             )}
             {onNavigateDaily && (

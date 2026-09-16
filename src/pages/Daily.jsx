@@ -75,6 +75,7 @@ export default function Daily({ contestants, colorblind }) {
         contestants={contestants}
         onMidGame={handleMidGame}
         onNavigateStats={() => navigate("/stats")}
+        onNavigateConnections={() => navigate("/connections")}
         onNavigateRecall={() => navigate("/recall")}
         onNavigateSandwich={() => navigate("/sandwich")}
         onNavigateBB={() => navigate("/bb")}

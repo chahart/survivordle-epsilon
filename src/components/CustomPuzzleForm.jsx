@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   validateCustomPuzzle, buildPuzzleFromForm, createCustomPuzzle, getCustomPuzzleUrl,
-  CUSTOM_CATEGORY_MAX_LEN, CUSTOM_ITEM_MAX_LEN, CUSTOM_TITLE_MAX_LEN,
+  CUSTOM_CATEGORY_MAX_LEN, CUSTOM_ITEM_MAX_LEN, CUSTOM_TITLE_MAX_LEN, CUSTOM_AUTHOR_MAX_LEN,
 } from "../shared/customConnections";
 import { saveCustomConnectionsToHistory } from "../shared/storage";
 
@@ -13,6 +13,7 @@ function emptyGroups() {
 
 export default function CustomPuzzleForm({ onCreated }) {
   const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
   const [groups, setGroups] = useState(emptyGroups());
   const [errors, setErrors] = useState([]);
   const [touched, setTouched] = useState(false);
@@ -33,12 +34,12 @@ export default function CustomPuzzleForm({ onCreated }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setTouched(true);
-    const { valid, errors: errs } = validateCustomPuzzle({ title, groups });
+    const { valid, errors: errs } = validateCustomPuzzle({ title, author, groups });
     setErrors(errs);
     if (!valid) return;
 
     setSaving(true);
-    const puzzle = buildPuzzleFromForm({ title, groups });
+    const puzzle = buildPuzzleFromForm({ title, author, groups });
     const code = await createCustomPuzzle(puzzle);
     setSaving(false);
 
@@ -62,6 +63,7 @@ export default function CustomPuzzleForm({ onCreated }) {
 
   function handleMakeAnother() {
     setTitle("");
+    setAuthor("");
     setGroups(emptyGroups());
     setErrors([]);
     setTouched(false);
@@ -103,6 +105,17 @@ export default function CustomPuzzleForm({ onCreated }) {
         />
       </div>
 
+      <div className="cx-form-field">
+        <label className="cx-form-label">Your Name (optional)</label>
+        <input
+          className="search-input"
+          value={author}
+          maxLength={CUSTOM_AUTHOR_MAX_LEN}
+          placeholder="e.g. Rob Cesternino"
+          onChange={e => setAuthor(e.target.value)}
+        />
+      </div>
+
       {groups.map((g, gi) => (
         <div className={`cx-form-group cx-diff-${gi + 1}`} key={gi}>
           <label className="cx-form-label">
@@ -135,6 +148,12 @@ export default function CustomPuzzleForm({ onCreated }) {
           {errors.map((err, i) => <div key={i} className="cx-form-error">{err}</div>)}
         </div>
       )}
+
+      <p className="modal-body" style={{ textAlign: "center", fontSize: "12px", color: "var(--text3)" }}>
+        Your list of custom puzzles is only saved on this device/browser. If you lose access to a puzzle, email{" "}
+        <a className="modal-link" href="mailto:survivordlegame@gmail.com">survivordlegame@gmail.com</a> with as
+        many details about the puzzle as possible.
+      </p>
 
       <div style={{ textAlign: "center", marginTop: "8px" }}>
         <button type="submit" className="cx-action-btn cx-submit" disabled={saving}>

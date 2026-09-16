@@ -38,6 +38,7 @@ export default function GameBoard({
   initialGaveUp,
   onShowStats,
   onNavigateStats,
+  onNavigateConnections,
   onNavigateRecall,
   onNavigateSandwich,
   onNavigateBB,
@@ -333,6 +334,11 @@ export default function GameBoard({
             {onNavigateStats && (
               <button className="share-btn" onClick={onNavigateStats}>
                 📊 Stats
+              </button>
+            )}
+            {onNavigateConnections && (
+              <button className="share-btn" onClick={onNavigateConnections}>
+                ⛓️ Connections
               </button>
             )}
             {onNavigateRecall && (

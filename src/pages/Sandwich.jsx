@@ -54,6 +54,7 @@ function SandwichDaily({ contestants, colorblind }) {
         onMidGame={handleMidGame}
         onComplete={handleComplete}
         onNavigateStats={() => navigate("/sandwich/stats")}
+        onNavigateConnections={() => navigate("/connections")}
         initialGuesses={saved?.guessObjects || []}
         initialGameOver={saved?.gameOver    || false}
         initialWon={saved?.won              || false}
@@ -91,6 +92,7 @@ function SandwichArchive({ contestants, colorblind }) {
           contestants={contestants}
           colorblind={colorblind}
           onNavigateStats={() => navigate("/sandwich/stats")}
+          onNavigateConnections={() => navigate("/connections")}
           onNavigateDaily={() => navigate("/sandwich")}
         />
       </>
@@ -171,6 +173,7 @@ function SandwichUnlimited({ contestants, colorblind }) {
         colorblind={colorblind}
         onComplete={handleComplete}
         onNavigateStats={() => navigate("/sandwich/stats")}
+        onNavigateConnections={() => navigate("/connections")}
         onNavigateDaily={() => navigate("/")}
       />
     </>

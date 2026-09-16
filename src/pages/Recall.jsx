@@ -277,6 +277,9 @@ function FlipResults({
           <button className="share-btn" onClick={() => navigate("/sandwich")}>
             🥪 Sandwich
           </button>
+          <button className="share-btn" onClick={() => navigate("/connections")}>
+            ⛓️ Connections
+          </button>
           <button className="share-btn" onClick={() => navigate("/")}>
             🏠 Home
           </button>

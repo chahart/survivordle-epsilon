@@ -46,6 +46,7 @@ export default function Archive({ contestants, colorblind }) {
           puzzleNum={selectedPuzzle}
           contestants={contestants}
           onNavigateStats={() => navigate("/stats")}
+          onNavigateConnections={() => navigate("/connections")}
           onNavigateRecall={() => navigate("/recall")}
           onNavigateSandwich={() => navigate("/sandwich")}
         />

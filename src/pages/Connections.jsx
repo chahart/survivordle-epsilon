@@ -190,7 +190,9 @@ function ConnectionsCustom({ colorblind }) {
         <div className="mode-banner">
           <div className="mode-banner-left">
             <span className="mode-banner-label">Connections Custom</span>
-            <span className="mode-banner-title">{puzzle.title || "A custom puzzle"}</span>
+            <span className="mode-banner-title">
+              {puzzle.title || "A custom puzzle"}{puzzle.author ? ` · by ${puzzle.author}` : ""}
+            </span>
           </div>
           <button className="archive-play-btn" style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600 }} onClick={() => navigate("/connections/custom")}>
             ← Back
@@ -218,6 +220,11 @@ function ConnectionsCustom({ colorblind }) {
       <p className="modal-body" style={{ textAlign: "center", marginBottom: "20px" }}>
         Build your own 4×4 puzzle and share the link with friends. Survivor-themed or not — up to you.
         Custom games don't affect your stats.
+      </p>
+      <p className="modal-body" style={{ textAlign: "center", marginBottom: "20px", fontSize: "12px", color: "var(--text3)" }}>
+        Heads up: custom puzzles aren't private. Anyone with the link can play it, and the puzzle content is
+        technically public data that could be featured or displayed elsewhere on Survivordle. Don't include
+        anything you wouldn't want shown publicly.
       </p>
 
       <CustomPuzzleForm onCreated={() => setHistory(loadCustomConnectionsHistory())} />
@@ -380,7 +387,7 @@ export default function Connections({ colorblind }) {
     title: "Survivor Connections – Free Daily Puzzle Game | Survivordle",
     description: "Play Survivor Connections, a free daily puzzle game where you group 16 Survivor-themed tiles into 4 hidden categories. New puzzle every Wednesday, plus an archive of past puzzles and custom puzzles you can make and share with friends.",
     canonical: "https://survivordle.com/connections",
-    image: "https://survivordle.com/connections-og-image.png",
+    image: "https://survivordle.com/og-connections-image.png",
   });
 
   // JSON-LD structured data — helps search engines classify this page as a
