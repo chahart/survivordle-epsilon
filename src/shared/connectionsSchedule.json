@@ -9,6 +9,32 @@
         { "difficulty": 3, "category": "FIRST BOOTS", "items": ["CIERA EASTIN", "JENNA LEWIS", "JOHNNY FAIRPLAY", "TINA WESSON"] },
         { "difficulty": 4, "category": "ONLY RETURNEES FROM THEIR SEASON", "items": ["BRENDA LOWE", "GENEVIEVE MUSHALUK", "JONATHAN YOUNG", "WENDELL HOLLAND"] }
       ]
+    },
+    {
+  "date": "2026-09-23",
+  "title": "Survivor 51 Premiere Day",
+  "groups": [
+    {
+      "difficulty": 1,
+      "category": "BLACK WIDOW BRIGADE",
+      "items": ["AMANDA KIMMEL", "CIRIE FIELDS", "NATALIE BOLTON", "PARVATI SHALLOW"]
+    },
+    {
+      "difficulty": 2,
+      "category": "MOST RECENT WINNERS",
+      "items": ["AUBRY BRACCO", "KYLE FRASER", "RACHEL LAMONT", "SAVANNAH LOUIE"]
+    },
+    {
+      "difficulty": 3,
+      "category": "RETURNEES FROM SURVIVOR: DAVID VS. GOLIATH",
+      "items": ["ANGELINA KEELEY", "CHRISTIAN HUBICKI", "MIKE WHITE", "NICK WILSON"]
+    },
+    {
+      "difficulty": 4,
+      "category": "COMMONLY REFERRED TO BY LAST NAME",
+      "items": ["ANDREW SAVAGE", "JOHN COCHRAN", "KELLEY WENTWORTH", "MIKE GABLER"]
     }
+  ]
+}
   ]
 }
