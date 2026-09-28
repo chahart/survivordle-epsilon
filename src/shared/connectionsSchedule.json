@@ -35,6 +35,32 @@
       "items": ["ANDREW SAVAGE", "JOHN COCHRAN", "KELLEY WENTWORTH", "MIKE GABLER"]
     }
   ]
+},
+{
+  "date": "2026-09-30",
+  "title": "GETTING INTO THE SWING OF THINGS",
+  "groups": [
+    {
+      "difficulty": 1,
+      "category": "SURVIVOR CAGAYAN FINAL FOUR",
+      "items": ["KASS MCQUILLEN", "SPENCER BLEDSOE", "TONY VLACHOS", "WOO HWANG"]
+    },
+    {
+      "difficulty": 2,
+      "category": "MEDICALLY EVACUATED",
+      "items": ["CALEB REYNOLDS", "ERIK REICHENBACH", "KYLE FRASER", "JONATHAN PENNER"]
+    },
+    {
+      "difficulty": 3,
+      "category": "PROFESSIONAL ATHLETES",
+      "items": ["BRAD CULPEPPER","CLIFF ROBINSON", "CRYSTAL COX", "JEFF KENT"]
+    },
+    {
+      "difficulty": 4,
+      "category": "RETURNED FROM EDGE OF EXTINCTION",
+      "items": ["CHRIS UNDERWOOD", "NATALIE ANDERSON", "RICK DEVENS", "TYSON APOSTOL"]
+    }
+  ]
 }
   ]
 }
