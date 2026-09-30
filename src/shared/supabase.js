@@ -290,7 +290,7 @@ export async function fetchRecallDailyStats(puzzleNames) {
   } catch { return null; }
 }
 
-export async function logConnectionsEvent({ weekNum, won, mistakes, solveOrder }) {
+export async function logConnectionsEvent({ weekNum, won, mistakes, solveOrder, usedHint, puzzleType = "main", customCode = null }) {
   try {
     const now = new Date();
     const pad = n => String(n).padStart(2, "0");
@@ -306,10 +306,13 @@ export async function logConnectionsEvent({ weekNum, won, mistakes, solveOrder }
         "Prefer": "return=minimal",
       },
       body: JSON.stringify({
-        week_num: weekNum,
+        week_num: weekNum || 0,
         won,
         mistakes,
         solve_order: solveOrder,
+        used_hint: !!usedHint,
+        puzzle_type: puzzleType,
+        custom_code: customCode,
         timestamp,
       }),
     });

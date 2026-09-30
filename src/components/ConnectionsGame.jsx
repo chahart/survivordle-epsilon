@@ -19,6 +19,7 @@ export default function ConnectionsGame({
   initialGuessHistory,
   initialGameOver,
   initialWon,
+  initialUsedHint,
 }) {
   const groups = puzzle.groups;
   const allItems = useMemo(() => groups.flatMap(g => g.items), [groups]);
@@ -55,6 +56,10 @@ export default function ConnectionsGame({
   const [bonusMode, setBonusMode] = useState(false);
   const [bonusSolved, setBonusSolved] = useState(false);
   const [shuffling, setShuffling] = useState(false);
+  const [showHints, setShowHints] = useState(false);
+  const [revealedHints, setRevealedHints] = useState([]);
+  const [confirmingHint, setConfirmingHint] = useState(null);
+  const [usedHint, setUsedHint] = useState(initialUsedHint || false);
   const toastTimer = useRef(null);
   const revealTimer = useRef(null);
   const shuffleTimer = useRef(null);
@@ -106,7 +111,26 @@ export default function ConnectionsGame({
       mistakes: finalMistakes,
       guesses: finalGuesses,
       solvedGroups: newSolvedGroups,
+      usedHint,
     });
+  }
+
+  function requestReveal(groupIndex) {
+    setConfirmingHint(groupIndex);
+  }
+
+  function confirmReveal(groupIndex) {
+    setUsedHint(true);
+    setRevealedHints(prev => (prev.includes(groupIndex) ? prev : [...prev, groupIndex]));
+    setConfirmingHint(null);
+  }
+
+  function hideHint(groupIndex) {
+    setRevealedHints(prev => prev.filter(gi => gi !== groupIndex));
+  }
+
+  function cancelReveal() {
+    setConfirmingHint(null);
   }
 
   // Reveal the remaining unsolved groups one at a time, slowly —
@@ -201,7 +225,7 @@ export default function ConnectionsGame({
           } else if (newSolved.length === 4) {
             finish(newSolved, true, mistakes, newHistory);
           } else {
-            onMidGame?.({ weekNum, guesses: newHistory, solvedGroups: newSolved, mistakes });
+            onMidGame?.({ weekNum, guesses: newHistory, solvedGroups: newSolved, mistakes, usedHint });
           }
         }, 700);
       }, BOUNCE_MS);
@@ -226,7 +250,7 @@ export default function ConnectionsGame({
           finish(solvedGroups, false, newMistakes, newHistory);
           setAskContinue(true);
         } else {
-          onMidGame?.({ weekNum, guesses: newHistory, solvedGroups, mistakes: newMistakes });
+          onMidGame?.({ weekNum, guesses: newHistory, solvedGroups, mistakes: newMistakes, usedHint });
         }
       }, 500);
     }, BOUNCE_MS);
@@ -347,6 +371,50 @@ export default function ConnectionsGame({
         </div>
       )}
 
+      {showHints && (
+        <div className="cx-continue-overlay" onClick={() => { setShowHints(false); setConfirmingHint(null); }}>
+          <div className="cx-hint-prompt" onClick={e => e.stopPropagation()}>
+            <p className="cx-continue-text">Categories</p>
+            <div className="cx-hint-list">
+              {groups.map((g, gi) => {
+                const isSolved = solvedGroups.includes(gi);
+                const isRevealed = revealedHints.includes(gi);
+                const isConfirming = confirmingHint === gi;
+                return (
+                  <div key={gi} className={`cx-hint-row cx-diff-${g.difficulty}${isSolved || isRevealed ? " cx-hint-revealed" : " cx-hint-hidden"}`}>
+                    <span className="cx-hint-category">
+                      {isSolved || isRevealed ? g.category : "???"}
+                    </span>
+                    {!isSolved && (
+                      isConfirming ? (
+                        <span className="cx-hint-confirm">
+                          <button className="cx-action-btn cx-hint-toggle cx-hint-confirm-yes" onClick={() => confirmReveal(gi)}>
+                            Yes, reveal
+                          </button>
+                          <button className="cx-action-btn cx-hint-toggle" onClick={cancelReveal}>
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          className="cx-action-btn cx-hint-toggle"
+                          onClick={() => (isRevealed ? hideHint(gi) : requestReveal(gi))}
+                        >
+                          {isRevealed ? "Hide" : "Reveal category"}
+                        </button>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <button className="cx-action-btn" onClick={() => { setShowHints(false); setConfirmingHint(null); }} style={{ marginTop: "16px" }}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {(!gameOver || bonusMode) && !askContinue && (
         <>
           <div className="cx-mistakes">
@@ -364,6 +432,9 @@ export default function ConnectionsGame({
             </button>
             <button className="cx-action-btn" onClick={handleDeselectAll} disabled={locked || selected.length === 0}>
               Deselect All
+            </button>
+            <button className="cx-action-btn" onClick={() => setShowHints(true)} disabled={locked}>
+              💡 Hint
             </button>
             <button className="cx-action-btn cx-submit" onClick={submitGuess} disabled={locked || selected.length !== 4}>
               Submit

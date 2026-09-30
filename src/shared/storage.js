@@ -176,12 +176,12 @@ export function loadTodayConnectionsGame(weekNum) {
   return null;
 }
 
-export function saveConnectionsMidGame({ weekNum, guesses, solvedGroups, mistakes }) {
+export function saveConnectionsMidGame({ weekNum, guesses, solvedGroups, mistakes, usedHint }) {
   const s = loadConnectionsStorage();
-  saveConnectionsStorage({ ...s, weekNum, guessObjects: guesses, solvedGroups, mistakes, gameOver: false });
+  saveConnectionsStorage({ ...s, weekNum, guessObjects: guesses, solvedGroups, mistakes, gameOver: false, usedHint });
 }
 
-export function saveConnectionsCompletedGame({ weekNum, won, mistakes, guesses, solvedGroups }) {
+export function saveConnectionsCompletedGame({ weekNum, won, mistakes, guesses, solvedGroups, usedHint }) {
   const s = loadConnectionsStorage();
   const stats = s.stats || { played: 0, wins: 0, currentStreak: 0, maxStreak: 0, dist: {} };
   stats.played += 1;
@@ -193,7 +193,7 @@ export function saveConnectionsCompletedGame({ weekNum, won, mistakes, guesses, 
   } else {
     stats.currentStreak = 0;
   }
-  saveConnectionsStorage({ weekNum, won, mistakes, guessObjects: guesses, solvedGroups, gameOver: true, stats });
+  saveConnectionsStorage({ weekNum, won, mistakes, guessObjects: guesses, solvedGroups, gameOver: true, usedHint, stats });
 }
 
 export function loadConnectionsStats() {

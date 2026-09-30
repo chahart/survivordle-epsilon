@@ -28,18 +28,18 @@ function ConnectionsDaily({ colorblind }) {
     return () => clearTimeout(timer);
   }, []);
 
-  function handleMidGame({ guesses, solvedGroups, mistakes }) {
-    saveConnectionsMidGame({ weekNum: puzzleKey, guesses, solvedGroups, mistakes });
+  function handleMidGame({ guesses, solvedGroups, mistakes, usedHint }) {
+    saveConnectionsMidGame({ weekNum: puzzleKey, guesses, solvedGroups, mistakes, usedHint });
   }
 
-  function handleComplete({ won, mistakes, guesses, solvedGroups }) {
-    saveConnectionsCompletedGame({ weekNum: puzzleKey, won, mistakes, guesses, solvedGroups });
+  function handleComplete({ won, mistakes, guesses, solvedGroups, usedHint }) {
+    saveConnectionsCompletedGame({ weekNum: puzzleKey, won, mistakes, guesses, solvedGroups, usedHint });
     // solve_order is the difficulty (1-4) of each group in the order it was
     // solved, e.g. [2,1,4,3] — mistakes here is exactly what's on the board
     // at the moment the loss/win is recorded, before any "keep going" bonus
     // play, which is intentionally never logged.
     const solveOrder = solvedGroups.map(gi => puzzle.groups[gi]?.difficulty).filter(Boolean);
-    logConnectionsEvent({ weekNum: puzzle.puzzleNumber, won, mistakes, solveOrder });
+    logConnectionsEvent({ weekNum: puzzle.puzzleNumber, won, mistakes, solveOrder, usedHint, puzzleType: "main" });
   }
 
   if (!puzzle) {
@@ -72,6 +72,7 @@ function ConnectionsDaily({ colorblind }) {
         initialMistakes={saved?.mistakes || 0}
         initialGameOver={saved?.gameOver || false}
         initialWon={saved?.won || false}
+        initialUsedHint={saved?.usedHint || false}
       />
     </>
   );
@@ -185,6 +186,14 @@ function ConnectionsCustom({ colorblind }) {
       );
     }
 
+    function handleCustomComplete({ won, mistakes, solvedGroups, usedHint }) {
+      // Custom games don't affect local stats/streaks — this only logs the
+      // solve event so custom puzzle activity shows up in the same dataset
+      // as Weekly, joinable back to custom_connections_puzzles via customCode.
+      const solveOrder = solvedGroups.map(gi => puzzle.groups[gi]?.difficulty).filter(Boolean);
+      logConnectionsEvent({ weekNum: 0, won, mistakes, solveOrder, usedHint, puzzleType: "custom", customCode: code });
+    }
+
     return (
       <>
         <div className="mode-banner">
@@ -205,6 +214,7 @@ function ConnectionsCustom({ colorblind }) {
           weekNum={null}
           customCode={code}
           colorblind={colorblind}
+          onComplete={handleCustomComplete}
           onNavigateDaily={() => navigate("/connections")}
         />
       </>

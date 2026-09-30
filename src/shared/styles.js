@@ -1285,6 +1285,83 @@ export const CONNECTIONS_CSS = `
     line-height: 1.5;
   }
 
+  .cx-hint-prompt {
+    text-align: center;
+    background: var(--modal-bg, var(--bg2));
+    border: 1px solid #e8742a;
+    border-radius: 12px;
+    padding: 24px 22px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 24px 64px var(--shadow, rgba(0,0,0,0.4)), 0 0 0 4px rgba(232,116,42,0.1);
+    animation: cxContinuePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .cx-hint-prompt .cx-continue-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: #e8742a;
+    font-weight: 400;
+  }
+  .cx-hint-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .cx-hint-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    transition: background 0.25s ease, border-color 0.25s ease, opacity 0.25s ease;
+  }
+  .cx-hint-row.cx-hint-hidden {
+    background: rgba(232,116,42,0.08);
+    border: 1px dashed rgba(232,116,42,0.55);
+  }
+  .cx-hint-row.cx-hint-hidden .cx-hint-category {
+    color: #e8742a;
+    font-style: italic;
+    letter-spacing: 1px;
+  }
+  .cx-hint-row.cx-hint-revealed {
+    border: 1px solid transparent;
+  }
+  .cx-hint-category {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: inherit;
+    text-align: left;
+  }
+  .cx-hint-toggle {
+    padding: 6px 12px;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .cx-hint-hidden .cx-hint-toggle {
+    color: #e8742a;
+    border-color: #e8742a;
+  }
+  .cx-hint-hidden .cx-hint-toggle:hover:not(:disabled) {
+    background: rgba(232,116,42,0.12);
+    border-color: #f5b57a;
+  }
+  .cx-hint-confirm {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .cx-hint-confirm-yes {
+    background: linear-gradient(135deg, #e8742a, #b03020);
+    color: #fff;
+    border-color: transparent;
+  }
+  .cx-hint-confirm-yes:hover:not(:disabled) { border-color: transparent; filter: brightness(1.08); }
+
   .cx-toast {
     text-align: center;
     font-family: 'DM Sans', sans-serif;
