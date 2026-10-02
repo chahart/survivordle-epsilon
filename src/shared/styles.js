@@ -443,6 +443,9 @@ const CSS = `
   .modal-dot.correct { background: #1a4d1a; border: 1px solid #4aaa4a; }
   .modal-dot.close   { background: #4a2a05; border: 1px solid #f09030; }
   .modal-dot.wrong   { background: var(--cell-wrong-bg); border: 1px solid var(--cell-wrong-border); }
+  .bb-modal .modal-title, .bb-modal .modal-section-title { color: #5aaedd; }
+  .bb-modal .play-recall-btn { background: #1a6fbf; }
+  .bb-modal .play-recall-btn:hover { background: #15589a; }
   .modal-cols { display: flex; flex-direction: column; gap: 8px; }
   .modal-col-row { display: flex; gap: 12px; font-size: 13px; }
   .modal-col-name { color: var(--text); font-weight: 600; min-width: 80px; flex-shrink: 0; }

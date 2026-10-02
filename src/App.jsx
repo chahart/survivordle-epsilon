@@ -25,7 +25,7 @@ import BBSandwich from "./pages/BBSandwich";
 import BBHowToPlay from "./pages/BBHowToPlay";
 import BBFAQ from "./pages/BBFAQ";
 import BBStats from "./pages/BBStats";
-import { AnnouncementModal, BBAnnouncementModal, ConnectionsAnnouncementModal } from "./components/Modals";
+import { AnnouncementModal, BBAnnouncementModal, ConnectionsAnnouncementModal, BBSeason28AnnouncementModal } from "./components/Modals";
 
 const BANNER_KEY = "survivordle_announcement_sandwich_jun23";
 const BANNER_START  = new Date("2026-06-23T14:00:00Z");
@@ -39,6 +39,10 @@ const BB_BANNER_EXPIRY = new Date("2026-07-15T12:00:00Z"); // one week later
 const CONNECTIONS_BANNER_KEY = "survivordle_announcement_connections_launch";
 const CONNECTIONS_BANNER_START = new Date("2026-09-08T00:00:00Z");
 
+// Shown only on /bb pages, once per visitor.
+const BB_S28_BANNER_KEY = "survivordle_announcement_bb_season28";
+const BB_S28_BANNER_START = new Date("2026-10-02T00:00:00Z");
+
 const PUB_ID = import.meta.env.VITE_PLAYWIRE_PUB_ID;
 const WEBSITE_ID = import.meta.env.VITE_PLAYWIRE_WEBSITE_ID;
 
@@ -50,6 +54,7 @@ export default function App() {
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [showBBAnnouncement, setShowBBAnnouncement] = useState(false);
   const [showConnectionsAnnouncement, setShowConnectionsAnnouncement] = useState(false);
+  const [showBBS28Announcement, setShowBBS28Announcement] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isBB = location.pathname === "/bb" || location.pathname.startsWith("/bb/");
@@ -107,6 +112,15 @@ export default function App() {
     }
   }, [loading]);
 
+  useEffect(() => {
+    if (loading || !isBB) return;
+    const now = new Date();
+    if (!localStorage.getItem(BB_S28_BANNER_KEY) && now >= BB_S28_BANNER_START) {
+      const timer = setTimeout(() => setShowBBS28Announcement(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isBB]);
+
   function dismissAnnouncement() {
     localStorage.setItem(BANNER_KEY, "1");
     setShowAnnouncement(false);
@@ -134,6 +148,16 @@ export default function App() {
 
   function goToConnections() {
     dismissConnectionsAnnouncement();
+    navigate("/connections");
+  }
+
+  function dismissBBS28Announcement() {
+    localStorage.setItem(BB_S28_BANNER_KEY, "1");
+    setShowBBS28Announcement(false);
+  }
+
+  function goToConnectionsFromBB() {
+    dismissBBS28Announcement();
     navigate("/connections");
   }
 
@@ -229,6 +253,11 @@ export default function App() {
           <ConnectionsAnnouncementModal
             onClose={dismissConnectionsAnnouncement}
             onPlayConnections={goToConnections}
+          />
+        ) : showBBS28Announcement && isBB ? (
+          <BBSeason28AnnouncementModal
+            onClose={dismissBBS28Announcement}
+            onPlayConnections={goToConnectionsFromBB}
           />
         ) : null}
 

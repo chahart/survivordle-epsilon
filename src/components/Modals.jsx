@@ -46,6 +46,29 @@ export function BBAnnouncementModal({ onClose, onPlayBB }) {
   );
 }
 
+export function BBSeason28AnnouncementModal({ onClose, onPlayConnections }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal bb-modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h2 className="modal-title">What's New</h2>
+
+        <div className="modal-section-title">Season 28 houseguests added! 👁</div>
+        <p className="modal-body">
+          The full Big Brother 28 cast is now in the pool of possible answers for Big Brotherdle, Recall, and Sandwich!
+        </p>
+        <p className="modal-body">
+          Also check out <strong> Connections Mode</strong>, a Connections-style puzzle game, and try building your own custom Survivor or Big Brother Connections puzzle to share with friends.
+        </p>
+
+        <button className="play-recall-btn" onClick={onPlayConnections}>
+          Play Connections →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ConnectionsAnnouncementModal({ onClose, onPlayConnections }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
