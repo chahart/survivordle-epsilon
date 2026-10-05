@@ -61,6 +61,32 @@
       "items": ["CHRIS UNDERWOOD", "NATALIE ANDERSON", "RICK DEVENS", "TYSON APOSTOL"]
     }
   ]
+},
+{
+  "date": "2026-10-07",
+  "title": "THE TRIBE IS SPEAKING",
+  "groups": [
+    {
+      "difficulty": 1,
+      "category": "SURVIVOR 46 PLAYERS VOTED OUT WITH IDOLS IN THEIR POCKET",
+      "items": ["HUNTER MCKNIGHT", "Q BURDETTE", "TIFFANY NICOLE ERVIN", "VENUS VAFA"]
+    },
+    {
+      "difficulty": 2,
+      "category": "OLDEST PLAYERS EVER",
+      "items": ["JIMMY JOHNSON", "JOE DEL CAMPO", "RUDY BOESCH", "TARZAN SMITH"]
+    },
+    {
+      "difficulty": 3,
+      "category": "NEW ERA ZERO VOTE FINALISTS",
+      "items": ["CAROLYN WIGER","JAKE O'KANE", "ROMEO ESCOBAR", "XANDER HASTINGS"]
+    },
+    {
+      "difficulty": 4,
+      "category": "BACK TO BACK SEASONS",
+      "items": ["AMANDA KIMMEL", "RIZO VELOVIC", "SAVANNAH LOUIE", "ZEKE SMITH"]
+    }
+  ]
 }
   ]
 }
