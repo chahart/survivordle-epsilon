@@ -9,10 +9,12 @@ import { logConnectionsEvent, fetchCommunityPuzzlesRemote } from "../shared/supa
 import {
   loadTodayConnectionsGame, saveConnectionsMidGame, saveConnectionsCompletedGame,
   loadConnectionsStats, loadCustomConnectionsHistory, deleteCustomConnectionsFromHistory,
+  markCustomPuzzlePlayed,
 } from "../shared/storage";
 import { msUntilMidnightET } from "../shared/gameLogic";
 import ConnectionsGame from "../components/ConnectionsGame";
 import CustomPuzzleForm from "../components/CustomPuzzleForm";
+import CommunitySearchModal, { CommunityItem } from "../components/CommunitySearchModal";
 import useSEO from "../shared/useSEO";
 
 // ── Daily mode ─────────────────────────────────────────────────────────────────
@@ -197,6 +199,7 @@ function ConnectionsCustom({ colorblind }) {
       // as Weekly, joinable back to custom_connections_puzzles via customCode.
       const solveOrder = solvedGroups.map(gi => puzzle.groups[gi]?.difficulty).filter(Boolean);
       logConnectionsEvent({ weekNum: 0, won, mistakes, solveOrder, usedHint, puzzleType: "custom", customCode: code });
+      markCustomPuzzlePlayed(code);
     }
 
     return (
@@ -271,25 +274,9 @@ function ConnectionsCustom({ colorblind }) {
 const COMMUNITY_PAGE_SIZE = 20;
 const COMMUNITY_FEATURED_LIMIT = 6;
 
-function CommunityItem({ p, onPlay }) {
-  return (
-    <div className="archive-item" onClick={() => onPlay(p.code)}>
-      <div className="archive-item-left">
-        <span className="archive-item-num">{p.title || "Untitled Puzzle"}</span>
-        <span className="archive-item-date">{p.author ? `by ${p.author}` : "Community puzzle"}</span>
-        {p.description && (
-          <span className="archive-item-date" style={{ whiteSpace: "pre-wrap", marginTop: "4px" }}>
-            {p.description}
-          </span>
-        )}
-      </div>
-      <button className="archive-play-btn">Play</button>
-    </div>
-  );
-}
-
 function ConnectionsCommunity() {
   const navigate = useNavigate();
+  const [searchOpen, setSearchOpen] = useState(false);
   const [featured, setFeatured] = useState([]);
   const [puzzles, setPuzzles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -365,6 +352,12 @@ function ConnectionsCommunity() {
   return (
     <>
       {intro}
+      <button type="button" className="cx-search-trigger" onClick={() => setSearchOpen(true)}>
+        <span aria-hidden="true">🔍</span> Search by title, author, or description
+      </button>
+      {searchOpen && (
+        <CommunitySearchModal featured={featured} onPlay={play} onClose={() => setSearchOpen(false)} />
+      )}
       {featured.length > 0 && (
         <>
           <div className="cx-history-heading">⭐ Featured</div>

@@ -380,6 +380,55 @@ export async function fetchCommunityPuzzlesRemote({ status, limit, offset = 0 })
   }
 }
 
+// Community search across featured + approved puzzles. Matches title, author and
+// description. Options: query, author (exact, case-insensitive), featuredOnly,
+// sort ("new" = featured first then newest-reviewed, "az" = by title),
+// playedCodes + played ("played" | "unplayed" | "all"). Returns an array of
+// { code, title, author, description, status }, or null on error.
+export async function searchCommunityPuzzlesRemote({
+  query = "", author = "", featuredOnly = false, sort = "new",
+  played = "all", playedCodes = [], limit, offset = 0,
+}) {
+  try {
+    // Strip characters that have meaning in PostgREST filter syntax.
+    const clean = s => s.replace(/[,()*\\"]/g, " ").replace(/\s+/g, " ").trim();
+    const params = [
+      featuredOnly ? "status=eq.featured" : "status=in.(approved,featured)",
+      "select=code,title,author,description,status",
+      `order=${sort === "az" ? "title.asc" : "status.desc,reviewed_at.desc.nullslast"}`,
+      `limit=${limit}`,
+      `offset=${offset}`,
+    ];
+
+    const q = clean(query);
+    if (q) {
+      const pat = encodeURIComponent(`*${q}*`);
+      params.push(`or=(title.ilike.${pat},author.ilike.${pat},description.ilike.${pat})`);
+    }
+    const a = clean(author);
+    if (a) params.push(`author=ilike.${encodeURIComponent(a)}`);
+
+    const codes = playedCodes.filter(c => /^[A-Za-z0-9]+$/.test(c));
+    if (played === "played") {
+      if (codes.length === 0) return [];
+      params.push(`code=in.(${codes.join(",")})`);
+    } else if (played === "unplayed" && codes.length > 0) {
+      params.push(`code=not.in.(${codes.join(",")})`);
+    }
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/custom_connections_puzzles?${params.join("&")}`, {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchRecallGlobalStats() {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_recall_global_stats`, {

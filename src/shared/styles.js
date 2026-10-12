@@ -1504,6 +1504,44 @@ export const CONNECTIONS_CSS = `
   }
   .cx-history-delete:hover { color: #d4574a; }
 
+  /* ── Community search ── */
+  .cx-search-trigger {
+    display: block; width: 100%; max-width: 560px; margin: 0 auto 8px; box-sizing: border-box;
+    text-align: left; cursor: pointer;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--placeholder); font-family: 'DM Sans', sans-serif; font-size: 15px;
+    padding: 13px 16px; transition: border-color 0.2s;
+  }
+  .cx-search-trigger:hover { border-color: #e8742a; }
+  .cx-search-overlay { align-items: flex-start; padding-top: 6vh; }
+  .cx-search-modal { max-width: 560px; }
+  .cx-search-modal .cx-search-input { width: 100%; box-sizing: border-box; display: block; }
+  .cx-search-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 4px; }
+  .cx-search-chip, .cx-search-seg button {
+    background: transparent; border: 1px solid var(--border); color: var(--text2);
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700;
+    padding: 6px 12px; cursor: pointer;
+  }
+  .cx-search-chip { border-radius: 20px; }
+  .cx-search-chip:hover, .cx-search-seg button:hover { border-color: var(--text3); }
+  .cx-search-chip.active, .cx-search-seg button.active {
+    background: rgba(232,116,42,0.15); border-color: #e8742a; color: #e8742a;
+  }
+  .cx-search-seg { display: inline-flex; }
+  .cx-search-seg button { border-radius: 0; margin-left: -1px; }
+  .cx-search-seg button:first-child { border-radius: 20px 0 0 20px; margin-left: 0; }
+  .cx-search-seg button:last-child { border-radius: 0 20px 20px 0; }
+  .cx-search-heading {
+    font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 1px;
+    color: var(--text3); text-transform: uppercase; margin: 18px 0 10px;
+  }
+  .cx-search-msg { text-align: center; color: var(--text3); font-size: 13px; margin: 28px 0 12px; }
+  .cx-search-author {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font: inherit; color: inherit; text-decoration: underline; text-decoration-style: dotted;
+  }
+  .cx-search-author:hover { color: #e8742a; }
+
 `;
 
 export { TAB_CSS, SUBTAB_CSS, PRIVACY_CSS, STATS_PAGE_CSS, ABOUT_CSS, FOOTER_CSS };

@@ -225,6 +225,25 @@ export function deleteCustomConnectionsFromHistory(code) {
   return history;
 }
 
+// ── Played custom/community puzzles (local only; powers the Community search filter) ──
+const PLAYED_CUSTOM_KEY = "survivordle_custom_connections_played";
+const PLAYED_CUSTOM_CAP = 200;
+
+export function loadPlayedCustomCodes() {
+  try {
+    const codes = JSON.parse(localStorage.getItem(PLAYED_CUSTOM_KEY));
+    return Array.isArray(codes) ? codes : [];
+  } catch { return []; }
+}
+
+export function markCustomPuzzlePlayed(code) {
+  if (!code) return;
+  const codes = loadPlayedCustomCodes().filter(c => c !== code);
+  codes.unshift(code);
+  try { localStorage.setItem(PLAYED_CUSTOM_KEY, JSON.stringify(codes.slice(0, PLAYED_CUSTOM_CAP))); }
+  catch {}
+}
+
 // ── BB Sandwich storage ───────────────────────────────────────────────────────
 const BB_SANDWICH_KEY = "bb_sandwich_state";
 
