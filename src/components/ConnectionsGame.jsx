@@ -13,6 +13,7 @@ export default function ConnectionsGame({
   onComplete,
   onMidGame,
   onNavigateStats,
+  onNavigateCommunity,
   onNavigateDaily,
   initialSolvedGroups,
   initialMistakes,
@@ -464,9 +465,14 @@ export default function ConnectionsGame({
                 📊 Stats
               </button>
             )}
+            {onNavigateCommunity && (
+              <button className="share-btn" onClick={onNavigateCommunity}>
+                🌐 Community
+              </button>
+            )}
             {onNavigateDaily && (
               <button className="share-btn" onClick={onNavigateDaily}>
-                ⛓️ Daily
+                ⛓️ Main
               </button>
             )}
           </div>

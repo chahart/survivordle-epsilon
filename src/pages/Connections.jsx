@@ -5,7 +5,7 @@ import {
   getDisplayDateForConnections, CONNECTIONS_MAX_MISTAKES,
 } from "../shared/connectionsLogic";
 import { loadCustomPuzzle } from "../shared/customConnections";
-import { logConnectionsEvent } from "../shared/supabase";
+import { logConnectionsEvent, fetchCommunityPuzzlesRemote } from "../shared/supabase";
 import {
   loadTodayConnectionsGame, saveConnectionsMidGame, saveConnectionsCompletedGame,
   loadConnectionsStats, loadCustomConnectionsHistory, deleteCustomConnectionsFromHistory,
@@ -67,6 +67,7 @@ function ConnectionsDaily({ colorblind }) {
         onMidGame={handleMidGame}
         onComplete={handleComplete}
         onNavigateStats={() => navigate("/connections/stats")}
+        onNavigateCommunity={() => navigate("/connections/community")}
         initialGuessHistory={saved?.guessObjects || []}
         initialSolvedGroups={saved?.solvedGroups || []}
         initialMistakes={saved?.mistakes || 0}
@@ -105,6 +106,7 @@ function ConnectionsArchive({ colorblind }) {
           weekNum={selectedPuzzle.puzzleNumber}
           colorblind={colorblind}
           onNavigateStats={() => navigate("/connections/stats")}
+          onNavigateCommunity={() => navigate("/connections/community")}
           onNavigateDaily={() => navigate("/connections")}
         />
       </>
@@ -141,7 +143,10 @@ function ConnectionsArchive({ colorblind }) {
 // ── Custom mode ────────────────────────────────────────────────────────────────
 function ConnectionsCustom({ colorblind }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { code } = useParams();
+  // Puzzles opened from the Community list send the player back there.
+  const backPath = location.state?.from === "community" ? "/connections/community" : "/connections/custom";
   const [history, setHistory] = useState(() => loadCustomConnectionsHistory());
   const [puzzle, setPuzzle] = useState(null);
   const [loadState, setLoadState] = useState(code ? "loading" : "idle"); // "loading" | "ready" | "notfound" | "idle"
@@ -203,7 +208,7 @@ function ConnectionsCustom({ colorblind }) {
               {puzzle.title || "A custom puzzle"}{puzzle.author ? ` · by ${puzzle.author}` : ""}
             </span>
           </div>
-          <button className="archive-play-btn" style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600 }} onClick={() => navigate("/connections/custom")}>
+          <button className="archive-play-btn" style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontSize: "12px", fontWeight: 600 }} onClick={() => navigate(backPath)}>
             ← Back
           </button>
         </div>
@@ -215,6 +220,7 @@ function ConnectionsCustom({ colorblind }) {
           customCode={code}
           colorblind={colorblind}
           onComplete={handleCustomComplete}
+          onNavigateCommunity={() => navigate("/connections/community")}
           onNavigateDaily={() => navigate("/connections")}
         />
       </>
@@ -256,6 +262,131 @@ function ConnectionsCustom({ colorblind }) {
             ))}
           </div>
         </>
+      )}
+    </>
+  );
+}
+
+// ── Community mode ─────────────────────────────────────────────────────────────
+const COMMUNITY_PAGE_SIZE = 20;
+const COMMUNITY_FEATURED_LIMIT = 6;
+
+function CommunityItem({ p, onPlay }) {
+  return (
+    <div className="archive-item" onClick={() => onPlay(p.code)}>
+      <div className="archive-item-left">
+        <span className="archive-item-num">{p.title || "Untitled Puzzle"}</span>
+        <span className="archive-item-date">{p.author ? `by ${p.author}` : "Community puzzle"}</span>
+        {p.description && (
+          <span className="archive-item-date" style={{ whiteSpace: "pre-wrap", marginTop: "4px" }}>
+            {p.description}
+          </span>
+        )}
+      </div>
+      <button className="archive-play-btn">Play</button>
+    </div>
+  );
+}
+
+function ConnectionsCommunity() {
+  const navigate = useNavigate();
+  const [featured, setFeatured] = useState([]);
+  const [puzzles, setPuzzles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetchCommunityPuzzlesRemote({ status: "featured", limit: COMMUNITY_FEATURED_LIMIT }),
+      fetchCommunityPuzzlesRemote({ status: "approved", limit: COMMUNITY_PAGE_SIZE + 1 }),
+    ]).then(([feat, rest]) => {
+      if (cancelled) return;
+      if (feat === null || rest === null) {
+        setError(true);
+      } else {
+        setFeatured(feat);
+        setHasMore(rest.length > COMMUNITY_PAGE_SIZE);
+        setPuzzles(rest.slice(0, COMMUNITY_PAGE_SIZE));
+      }
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function loadMore() {
+    setLoadingMore(true);
+    const rows = await fetchCommunityPuzzlesRemote({
+      status: "approved", limit: COMMUNITY_PAGE_SIZE + 1, offset: puzzles.length,
+    });
+    setLoadingMore(false);
+    if (rows === null) return;
+    setHasMore(rows.length > COMMUNITY_PAGE_SIZE);
+    setPuzzles(prev => [...prev, ...rows.slice(0, COMMUNITY_PAGE_SIZE)]);
+  }
+
+  function play(code) {
+    navigate(`/connections/custom/${code}`, { state: { from: "community" } });
+  }
+
+  const intro = (
+    <p className="modal-body" style={{ textAlign: "center", marginBottom: "20px" }}>
+      Puzzles made by the Survivordle community. Want yours here? Build one on the{" "}
+      <Link to="/connections/custom" className="modal-link">Custom</Link> tab and choose to submit it for review.
+    </p>
+  );
+
+  if (loading) return <div className="loading">⛓️ Loading community puzzles…</div>;
+
+  if (error) {
+    return (
+      <>
+        {intro}
+        <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "13px" }}>
+          Couldn't load community puzzles — check your connection and try again.
+        </p>
+      </>
+    );
+  }
+
+  if (featured.length === 0 && puzzles.length === 0) {
+    return (
+      <>
+        {intro}
+        <p style={{ textAlign: "center", color: "var(--text3)", fontSize: "13px" }}>
+          No community puzzles yet — be the first!
+        </p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {intro}
+      {featured.length > 0 && (
+        <>
+          <div className="cx-history-heading">⭐ Featured</div>
+          <div className="archive-list">
+            {featured.map(p => <CommunityItem key={p.code} p={p} onPlay={play} />)}
+          </div>
+        </>
+      )}
+      {puzzles.length > 0 && (
+        <>
+          <div className="cx-history-heading">Community Puzzles</div>
+          <div className="archive-list">
+            {puzzles.map(p => <CommunityItem key={p.code} p={p} onPlay={play} />)}
+          </div>
+        </>
+      )}
+      {hasMore && (
+        <div style={{ textAlign: "center", marginTop: "16px" }}>
+          <button className="cx-action-btn" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        </div>
       )}
     </>
   );
@@ -430,6 +561,9 @@ export default function Connections({ colorblind }) {
   const path = location.pathname.replace(/\/$/, "");
   const activeTab = path === "/connections/archive"        ? "archive"
                   : path === "/connections/stats"          ? "stats"
+                  : path === "/connections/community"      ? "community"
+                  // A puzzle opened from the Community list keeps the Community tab lit.
+                  : path.startsWith("/connections/custom/") && location.state?.from === "community" ? "community"
                   : path.startsWith("/connections/custom")  ? "custom"
                   : "daily";
 
@@ -462,6 +596,9 @@ export default function Connections({ colorblind }) {
         <button className={`ul-tab${activeTab === "custom"  ? " active" : ""}`} onClick={() => navigate("/connections/custom")}>
           ✏️ Custom
         </button>
+        <button className={`ul-tab${activeTab === "community" ? " active" : ""}`} onClick={() => navigate("/connections/community")}>
+          🌐 Community
+        </button>
         <button className={`ul-tab${activeTab === "stats"   ? " active" : ""}`} onClick={() => navigate("/connections/stats")}>
           📊 Stats
         </button>
@@ -470,7 +607,8 @@ export default function Connections({ colorblind }) {
 
       {activeTab === "daily"   && <ConnectionsDaily   colorblind={colorblind} />}
       {activeTab === "archive" && <ConnectionsArchive colorblind={colorblind} />}
-      {activeTab === "custom"  && <ConnectionsCustom  colorblind={colorblind} />}
+      {(activeTab === "custom" || path.startsWith("/connections/custom/")) && <ConnectionsCustom colorblind={colorblind} />}
+      {activeTab === "community" && !path.startsWith("/connections/custom/") && <ConnectionsCommunity />}
       {activeTab === "stats"   && <ConnectionsStats />}
     </>
   );

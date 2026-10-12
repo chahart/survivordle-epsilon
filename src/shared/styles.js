@@ -1420,6 +1420,8 @@ export const CONNECTIONS_CSS = `
   /* ── Custom puzzle builder ── */
   .cx-form { max-width: 560px; margin: 0 auto; }
   .cx-form-field { margin-bottom: 20px; }
+  .cx-form .search-input { width: 100%; box-sizing: border-box; }
+  .cx-form textarea.search-input { display: block; min-height: 84px; line-height: 1.5; resize: vertical; }
   .cx-form-label {
     display: block;
     font-family: 'DM Sans', sans-serif;

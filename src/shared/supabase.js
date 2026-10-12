@@ -322,7 +322,7 @@ export async function logConnectionsEvent({ weekNum, won, mistakes, solveOrder, 
 }
 
 // ── Custom Connections puzzles ────────────────────────────────────────────────
-export async function saveCustomPuzzleRemote({ code, title, author, groups }) {
+export async function saveCustomPuzzleRemote({ code, title, author, groups, description, status }) {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/custom_connections_puzzles`, {
       method: "POST",
@@ -332,7 +332,7 @@ export async function saveCustomPuzzleRemote({ code, title, author, groups }) {
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
         "Prefer": "return=minimal",
       },
-      body: JSON.stringify({ code, title, author, groups }),
+      body: JSON.stringify({ code, title, author, groups, description, status }),
     });
     return res.ok;
   } catch {
@@ -342,8 +342,30 @@ export async function saveCustomPuzzleRemote({ code, title, author, groups }) {
 
 export async function fetchCustomPuzzleRemote(code) {
   try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_custom_puzzle`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ p_code: code }),
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+// Community listing. status: "featured" or "approved". Returns an array of
+// { code, title, author, description } (newest-reviewed first), or null on error.
+export async function fetchCommunityPuzzlesRemote({ status, limit, offset = 0 }) {
+  try {
+    const order = status === "featured" ? "featured_at.desc" : "reviewed_at.desc";
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/custom_connections_puzzles?code=eq.${encodeURIComponent(code)}&select=title,author,groups`,
+      `${SUPABASE_URL}/rest/v1/custom_connections_puzzles?status=eq.${status}&select=code,title,author,description&order=${order}&limit=${limit}&offset=${offset}`,
       {
         headers: {
           "apikey": SUPABASE_ANON_KEY,
@@ -352,8 +374,7 @@ export async function fetchCustomPuzzleRemote(code) {
       }
     );
     if (!res.ok) return null;
-    const rows = await res.json();
-    return rows[0] || null;
+    return await res.json();
   } catch {
     return null;
   }

@@ -92,6 +92,50 @@ export function ConnectionsAnnouncementModal({ onClose, onPlayConnections }) {
   );
 }
 
+export function CommunityAnnouncementModal({ onClose, onGoCustom, onGoCommunity }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h2 className="modal-title">What's New</h2>
+
+        <div className="modal-section-title">Your puzzles can now be featured! 🌐</div>
+        <p className="modal-body">
+          Custom Connections puzzles can now be featured on the site under the new{" "}
+          <a
+            className="modal-link"
+            href="/connections/community"
+            style={{ color: "#e8742a", textDecoration: "underline" }}
+            onClick={e => { e.preventDefault(); onGoCommunity(); }}
+          >
+            <strong>Community</strong>
+          </a>{" "}
+          tab. Build a puzzle on the{" "}
+          <a
+            className="modal-link"
+            href="/connections/custom"
+            onClick={e => { e.preventDefault(); onGoCustom(); }}
+          >
+            Custom page
+          </a>
+          , choose to submit it for review, and add a description with your @handle or #tags to promote yourself.
+        </p>
+        <p className="modal-body">
+          Not ready to share it publicly? Custom puzzles still work as private links you can send to friends.
+        </p>
+        <p className="modal-body">
+          Note: puzzles created before this update aren't eligible for the Community page, but you can remake
+          them and submit the new version.
+        </p>
+
+        <button className="play-recall-btn" onClick={onGoCustom}>
+          Make a Puzzle →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function HowToPlayModal({ onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>

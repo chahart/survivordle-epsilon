@@ -4,6 +4,7 @@ export const CUSTOM_CATEGORY_MAX_LEN = 40;
 export const CUSTOM_ITEM_MAX_LEN = 30;
 export const CUSTOM_TITLE_MAX_LEN = 60;
 export const CUSTOM_AUTHOR_MAX_LEN = 40;
+export const CUSTOM_DESCRIPTION_MAX_LEN = 280;
 
 const CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const CODE_LENGTH = 7;
@@ -23,7 +24,14 @@ export async function createCustomPuzzle(puzzle) {
   const groups = puzzle.groups.map(g => ({ difficulty: g.difficulty, category: g.category, items: g.items }));
   for (let attempt = 0; attempt < 2; attempt++) {
     const code = randomCode();
-    const ok = await saveCustomPuzzleRemote({ code, title: puzzle.title || "", author: puzzle.author || "", groups });
+    const ok = await saveCustomPuzzleRemote({
+      code,
+      title: puzzle.title || "",
+      author: puzzle.author || "",
+      groups,
+      description: puzzle.description || null,
+      status: puzzle.submitForReview ? "submitted" : "private",
+    });
     if (ok) return code;
   }
   return null;
@@ -55,17 +63,28 @@ export function getCustomPuzzleUrl(code) {
 }
 
 // Validates the raw builder form state before saving.
-// formState: { title, groups: [{ category, items: [4 strings] }, x4] }
+// formState: { title, author, submitForReview, description, groups: [{ category, items: [4 strings] }, x4] }
 export function validateCustomPuzzle(formState) {
   const errors = [];
   const groups = formState?.groups || [];
 
-  if (formState?.title && formState.title.length > CUSTOM_TITLE_MAX_LEN) {
+  const title = (formState?.title || "").trim();
+  if (!title) errors.push("Give your puzzle a title.");
+  else if (title.length > CUSTOM_TITLE_MAX_LEN) {
     errors.push(`Title must be ${CUSTOM_TITLE_MAX_LEN} characters or fewer.`);
   }
 
-  if (formState?.author && formState.author.length > CUSTOM_AUTHOR_MAX_LEN) {
-    errors.push(`Author name must be ${CUSTOM_AUTHOR_MAX_LEN} characters or fewer.`);
+  const author = (formState?.author || "").trim();
+  if (!author) errors.push("Add a display name.");
+  else if (author.length > CUSTOM_AUTHOR_MAX_LEN) {
+    errors.push(`Display name must be ${CUSTOM_AUTHOR_MAX_LEN} characters or fewer.`);
+  }
+
+  const description = (formState?.description || "").trim();
+  if (description.length > CUSTOM_DESCRIPTION_MAX_LEN) {
+    errors.push(`Description must be ${CUSTOM_DESCRIPTION_MAX_LEN} characters or fewer.`);
+  } else if (/https?:\/\/|www\./i.test(description)) {
+    errors.push("Please leave links out of the description — your @handle or #tags are fine.");
   }
 
   if (groups.length !== 4) {
@@ -114,6 +133,8 @@ export function buildPuzzleFromForm(formState) {
   return {
     title: (formState.title || "").trim(),
     author: (formState.author || "").trim(),
+    submitForReview: !!formState.submitForReview,
+    description: (formState.description || "").trim(),
     groups: formState.groups.map((g, i) => ({
       difficulty: i + 1,
       category: g.category.trim(),

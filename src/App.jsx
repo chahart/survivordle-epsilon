@@ -25,7 +25,7 @@ import BBSandwich from "./pages/BBSandwich";
 import BBHowToPlay from "./pages/BBHowToPlay";
 import BBFAQ from "./pages/BBFAQ";
 import BBStats from "./pages/BBStats";
-import { AnnouncementModal, BBAnnouncementModal, ConnectionsAnnouncementModal, BBSeason28AnnouncementModal } from "./components/Modals";
+import { AnnouncementModal, BBAnnouncementModal, ConnectionsAnnouncementModal, BBSeason28AnnouncementModal, CommunityAnnouncementModal } from "./components/Modals";
 
 const BANNER_KEY = "survivordle_announcement_sandwich_jun23";
 const BANNER_START  = new Date("2026-06-23T14:00:00Z");
@@ -43,7 +43,12 @@ const CONNECTIONS_BANNER_START = new Date("2026-09-08T00:00:00Z");
 const BB_S28_BANNER_KEY = "survivordle_announcement_bb_season28";
 const BB_S28_BANNER_START = new Date("2026-10-02T00:00:00Z");
 
-const PUB_ID = import.meta.env.VITE_PLAYWIRE_PUB_ID;
+// Community puzzles announcement: shown once per device, on any page, for all of October (ET).
+const COMMUNITY_BANNER_KEY = "survivordle_announcement_community_oct";
+const COMMUNITY_BANNER_START  = new Date("2026-10-01T04:00:00Z"); // Oct 1, 12am ET
+const COMMUNITY_BANNER_EXPIRY = new Date("2026-11-01T04:00:00Z"); // end of Oct 31 ET
+
+const PUB_ID =import.meta.env.VITE_PLAYWIRE_PUB_ID;
 const WEBSITE_ID = import.meta.env.VITE_PLAYWIRE_WEBSITE_ID;
 
 export default function App() {
@@ -55,6 +60,7 @@ export default function App() {
   const [showBBAnnouncement, setShowBBAnnouncement] = useState(false);
   const [showConnectionsAnnouncement, setShowConnectionsAnnouncement] = useState(false);
   const [showBBS28Announcement, setShowBBS28Announcement] = useState(false);
+  const [showCommunityAnnouncement, setShowCommunityAnnouncement] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isBB = location.pathname === "/bb" || location.pathname.startsWith("/bb/");
@@ -120,6 +126,30 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [loading, isBB]);
+
+  useEffect(() => {
+    if (loading) return;
+    const now = new Date();
+    if (!localStorage.getItem(COMMUNITY_BANNER_KEY) && now >= COMMUNITY_BANNER_START && now < COMMUNITY_BANNER_EXPIRY) {
+      const timer = setTimeout(() => setShowCommunityAnnouncement(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  function dismissCommunityAnnouncement() {
+    localStorage.setItem(COMMUNITY_BANNER_KEY, "1");
+    setShowCommunityAnnouncement(false);
+  }
+
+  function goToCustom() {
+    dismissCommunityAnnouncement();
+    navigate("/connections/custom");
+  }
+
+  function goToCommunity() {
+    dismissCommunityAnnouncement();
+    navigate("/connections/community");
+  }
 
   function dismissAnnouncement() {
     localStorage.setItem(BANNER_KEY, "1");
@@ -218,7 +248,8 @@ export default function App() {
             <Route path="/connections/archive"       element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/custom"        element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/custom/:code"  element={<Connections colorblind={colorblind} />} />
-            <Route path="/connections/stats"         element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/community"     element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/stats"        element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/faq"           element={<ConnectionsFAQ />} />
             <Route path="/bb"           element={<BB colorblind={colorblind} />} />
             <Route path="/bb/archive"   element={<BB colorblind={colorblind} />} />
@@ -258,6 +289,12 @@ export default function App() {
           <BBSeason28AnnouncementModal
             onClose={dismissBBS28Announcement}
             onPlayConnections={goToConnectionsFromBB}
+          />
+        ) : showCommunityAnnouncement ? (
+          <CommunityAnnouncementModal
+            onClose={dismissCommunityAnnouncement}
+            onGoCustom={goToCustom}
+            onGoCommunity={goToCommunity}
           />
         ) : null}
 
