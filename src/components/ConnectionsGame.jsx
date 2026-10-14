@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { CONNECTIONS_MAX_MISTAKES, checkGuess, shuffleTiles } from "../shared/connectionsLogic";
-import { getCustomPuzzleUrl } from "../shared/customConnections";
 
 const DIFF_EMOJI = { 1: "🟩", 2: "🟧", 3: "🟪", 4: "🟥" };
 
@@ -272,10 +271,10 @@ export default function ConnectionsGame({
     const label = mode === "connections_archive"
       ? `Survivordle Connections Archive #${weekNum}`
       : mode === "connections_custom"
-      ? `Survivordle Connections (Custom)`
+      ? `Survivor Custom Connections${puzzle.title ? `: "${puzzle.title}"` : ""}`
       : `Survivordle Connections #${weekNum}`;
     const link = mode === "connections_custom" && customCode
-      ? getCustomPuzzleUrl(customCode)
+      ? `survivordle.com/connections/custom/${customCode}`
       : "survivordle.com/connections";
 
     // Clean win within the 4-mistake limit: NYT-style emoji grid, one row

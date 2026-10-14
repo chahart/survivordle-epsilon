@@ -5,6 +5,9 @@ export const config = {
 const BB_TITLE = "Big Brotherdle: Daily Big Brother Houseguest Guessing Game";
 const BB_DESCRIPTION = "Guess the Big Brother houseguest in 8 tries. New puzzle every day: match by season, comp wins, placement, age, and more!";
 
+const CONNECTIONS_TITLE = "Survivor Connections: Daily Survivor Word Grouping Puzzle";
+const CONNECTIONS_DESCRIPTION = "Group 16 Survivor words into 4 hidden categories. Play the daily puzzle or community-made puzzles!";
+
 // bigbrotherdle.com normally 301s to survivordle.com (see vercel.json / domain settings).
 // That redirect is invisible to real browsers but breaks most link-preview crawlers, which
 // either don't follow cross-domain redirects or key the preview to the pasted URL. So for
@@ -59,11 +62,15 @@ export default async function middleware(request) {
   }
 
   const isBB = url.pathname === "/bb" || url.pathname.startsWith("/bb/");
-  if (!isBB) return;
+  const isConnections = url.pathname === "/connections" || url.pathname.startsWith("/connections/");
+  if (!isBB && !isConnections) return;
+
+  const BB_TITLE_ = isBB ? BB_TITLE : CONNECTIONS_TITLE;
+  const BB_DESCRIPTION_ = isBB ? BB_DESCRIPTION : CONNECTIONS_DESCRIPTION;
 
   // og:url/canonical intentionally stay pinned to the production domain (SEO identity).
   // og:image must use the requesting host so crawlers can actually fetch it on preview deployments.
-  const BB_IMAGE = `${url.origin}/Big_Brotherdle_Thumbnail.png`;
+  const BB_IMAGE = `${url.origin}/${isBB ? "Big_Brotherdle_Thumbnail.png" : "og-connections-image.png"}`;
 
   const response = await fetch(new URL("/index.html", url));
   let html = await response.text();
@@ -71,19 +78,19 @@ export default async function middleware(request) {
   html = html
     .replace(
       /<title>.*?<\/title>/,
-      `<title>${BB_TITLE}</title>`
+      `<title>${BB_TITLE_}</title>`
     )
     .replace(
       /<meta name="description" content=".*?" \/>/,
-      `<meta name="description" content="${BB_DESCRIPTION}" />`
+      `<meta name="description" content="${BB_DESCRIPTION_}" />`
     )
     .replace(
       /<meta property="og:title" content=".*?" \/>/,
-      `<meta property="og:title" content="${BB_TITLE}" />`
+      `<meta property="og:title" content="${BB_TITLE_}" />`
     )
     .replace(
       /<meta property="og:description" content=".*?" \/>/,
-      `<meta property="og:description" content="${BB_DESCRIPTION}" />`
+      `<meta property="og:description" content="${BB_DESCRIPTION_}" />`
     )
     .replace(
       /<meta property="og:url" content=".*?" \/>/,
@@ -95,11 +102,11 @@ export default async function middleware(request) {
     )
     .replace(
       /<meta name="twitter:title" content=".*?" \/>/,
-      `<meta name="twitter:title" content="${BB_TITLE}" />`
+      `<meta name="twitter:title" content="${BB_TITLE_}" />`
     )
     .replace(
       /<meta name="twitter:description" content=".*?" \/>/,
-      `<meta name="twitter:description" content="${BB_DESCRIPTION}" />`
+      `<meta name="twitter:description" content="${BB_DESCRIPTION_}" />`
     )
     .replace(
       /<meta name="twitter:image" content=".*?" \/>/,
