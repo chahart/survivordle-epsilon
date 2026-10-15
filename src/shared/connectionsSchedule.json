@@ -1,15 +1,8 @@
 {
-  "puzzles": [
-    {
-      "date": "2026-09-16",
-      "title": "Intro to Survivordle Connections",
-      "groups": [
-        { "difficulty": 1, "category": "UNANIMOUS WINNERS", "items": ["ADAM KLEIN", "JEREMY COLLINS", "JOHN COCHRAN", "J.T. THOMAS"] },
-        { "difficulty": 2, "category": "PREMERGE VILLAINS", "items": ["COACH WADE", "COURTNEY YATES", "BOSTON ROB", "TYSON APOSTOL"] },
-        { "difficulty": 3, "category": "FIRST BOOTS", "items": ["CIERA EASTIN", "JENNA LEWIS", "JOHNNY FAIRPLAY", "TINA WESSON"] },
-        { "difficulty": 4, "category": "ONLY RETURNEES FROM THEIR SEASON", "items": ["BRENDA LOWE", "GENEVIEVE MUSHALUK", "JONATHAN YOUNG", "WENDELL HOLLAND"] }
-      ]
-    },
+  "puzzles": [{"date": "2026-09-16","title": "Intro to Survivordle Connections","groups": [{ "difficulty": 1, "category": "UNANIMOUS WINNERS", "items": ["ADAM KLEIN", "JEREMY COLLINS", "JOHN COCHRAN", "J.T. THOMAS"] },
+  { "difficulty": 2, "category": "PREMERGE VILLAINS", "items": ["COACH WADE", "COURTNEY YATES", "BOSTON ROB", "TYSON APOSTOL"] },
+  { "difficulty": 3, "category": "FIRST BOOTS", "items": ["CIERA EASTIN", "JENNA LEWIS", "JOHNNY FAIRPLAY", "TINA WESSON"] },
+  { "difficulty": 4, "category": "ONLY RETURNEES FROM THEIR SEASON", "items": ["BRENDA LOWE", "GENEVIEVE MUSHALUK", "JONATHAN YOUNG", "WENDELL HOLLAND"] }]},
     {
   "date": "2026-09-23",
   "title": "Survivor 51 Premiere Day",
@@ -87,6 +80,21 @@
       "items": ["AMANDA KIMMEL", "RIZO VELOVIC", "SAVANNAH LOUIE", "ZEKE SMITH"]
     }
   ]
-}
+},
+{"date": "2026-10-14",
+"title": "You've got to dig!",
+"groups": 
+[{ "difficulty": 1, 
+"category": "SURVIVOR: ALL STARS FINAL FOUR", 
+"items": ["AMBER MARIANO", "BOSTON ROB", "JENNA LEWIS", "RUPERT BONEHAM"] },
+
+{ "difficulty": 2, "category": "FIRE MAKING CHALLENGE LOSERS", 
+"items": ["JESSE LOPEZ", "JONATHAN YOUNG", "LIZ WILCOX", "SARAH LACINA"] },
+
+{ "difficulty": 3, "category": "WON AND NEVER RETURNED", 
+"items": ["EARL COLE", "NATALIE WHITE", "TODD HERZOG", "VECEPIA TOWERY"] },
+
+{ "difficulty": 4, "category": "FIREFIGHTERS", 
+"items": ["JEREMY COLLINS", "JOE HUNTER", "KEITH NALE", "TOM WESTMAN"] }]}
   ]
 }
