@@ -1,3 +1,5 @@
+import { getConnectionsSEO } from "./src/shared/connectionsSEO.js";
+
 export const config = {
   matcher: "/((?!_next|api|.*\\.[\\w]+$).*)",
 };
@@ -65,8 +67,11 @@ export default async function middleware(request) {
   const isConnections = url.pathname === "/connections" || url.pathname.startsWith("/connections/");
   if (!isBB && !isConnections) return;
 
-  const BB_TITLE_ = isBB ? BB_TITLE : CONNECTIONS_TITLE;
-  const BB_DESCRIPTION_ = isBB ? BB_DESCRIPTION : CONNECTIONS_DESCRIPTION;
+  // Connections pages get per-page title/description/canonical (see connectionsSEO.js).
+  const cx = isConnections ? getConnectionsSEO(url.pathname) : null;
+  const BB_TITLE_ = isBB ? BB_TITLE : cx?.title ?? CONNECTIONS_TITLE;
+  const BB_DESCRIPTION_ = isBB ? BB_DESCRIPTION : cx?.description ?? CONNECTIONS_DESCRIPTION;
+  const pageUrl = cx?.canonical ?? `https://survivordle.com${url.pathname}`;
 
   // og:url/canonical intentionally stay pinned to the production domain (SEO identity).
   // og:image must use the requesting host so crawlers can actually fetch it on preview deployments.
@@ -94,7 +99,7 @@ export default async function middleware(request) {
     )
     .replace(
       /<meta property="og:url" content=".*?" \/>/,
-      `<meta property="og:url" content="https://survivordle.com${url.pathname}" />`
+      `<meta property="og:url" content="${pageUrl}" />`
     )
     .replace(
       /<meta property="og:image" content=".*?" \/>/,
@@ -114,7 +119,7 @@ export default async function middleware(request) {
     )
     .replace(
       /<link rel="canonical" href=".*?" \/>/,
-      `<link rel="canonical" href="https://survivordle.com${url.pathname}" />`
+      `<link rel="canonical" href="${pageUrl}" />`
     );
 
   return new Response(html, {

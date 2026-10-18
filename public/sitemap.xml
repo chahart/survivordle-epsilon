@@ -43,6 +43,13 @@
     <priority>0.6</priority>
   </url>
 
+  <!-- Community: fan-made Survivor Connections puzzles. Players can submit their own custom puzzles for review and play puzzles created by other fans. -->
+  <url>
+    <loc>https://survivordle.com/connections/community</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+
   <url>
     <loc>https://survivordle.com/connections/stats</loc>
     <changefreq>weekly</changefreq>

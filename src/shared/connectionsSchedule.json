@@ -95,6 +95,12 @@
 "items": ["EARL COLE", "NATALIE WHITE", "TODD HERZOG", "VECEPIA TOWERY"] },
 
 { "difficulty": 4, "category": "FIREFIGHTERS", 
-"items": ["JEREMY COLLINS", "JOE HUNTER", "KEITH NALE", "TOM WESTMAN"] }]}
+"items": ["JEREMY COLLINS", "JOE HUNTER", "KEITH NALE", "TOM WESTMAN"] }]},
+{"date": "2026-10-21",
+"title": "TONIGHT WE MAKE OUR MOVE, TOMORROW WE MAKE OUR APOLOGIES",
+"groups": [{ "difficulty": 1, "category": "MEMBERS OF STEALTH R US", "items": ["ANDREA BOELKHE", "DAWN MEEHAN", "JOHN COCHRAN", "PHILLIP SHEPPARD"] },
+{ "difficulty": 2, "category": "LOST BY EXACTLY ONE VOTE", "items": ["DOMENICK ABBATE", "KELLY WIGLESWORTH", "NELEH DENNIS", "OZZY LUSTH"] },
+{ "difficulty": 3, "category": "SAT NEXT TO MICHELE FITZGERALD AT FINAL TRIBAL", "items": ["AUBRY BRACCO", "NATALIE ANDERSON", "TAI TRANG", "TONY VLACHOS"] },
+{ "difficulty": 4, "category": "4 LETTER FIRST AND LAST NAMES", "items": ["DAVE BALL", "HALI FORD", "JOHN CODY", "WILL WAHL"] }]}
   ]
 }

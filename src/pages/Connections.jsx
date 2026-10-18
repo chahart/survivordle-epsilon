@@ -15,6 +15,7 @@ import { msUntilMidnightET } from "../shared/gameLogic";
 import ConnectionsGame from "../components/ConnectionsGame";
 import CustomPuzzleForm from "../components/CustomPuzzleForm";
 import CommunitySearchModal, { CommunityItem } from "../components/CommunitySearchModal";
+import { getConnectionsSEO } from "../shared/connectionsSEO";
 import useSEO from "../shared/useSEO";
 
 // ── Daily mode ─────────────────────────────────────────────────────────────────
@@ -517,12 +518,8 @@ export default function Connections({ colorblind }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useSEO({
-    title: "Survivor Connections – Free Daily Puzzle Game | Survivordle",
-    description: "Play Survivor Connections, a free daily puzzle game where you group 16 Survivor-themed tiles into 4 hidden categories. New puzzle every Wednesday, plus an archive of past puzzles and custom puzzles you can make and share with friends.",
-    canonical: "https://survivordle.com/connections",
-    image: "https://survivordle.com/og-connections-image.png",
-  });
+  const seo = getConnectionsSEO(location.pathname);
+  useSEO({ ...seo, image: "https://survivordle.com/og-connections-image.png" });
 
   // JSON-LD structured data — helps search engines classify this page as a
   // game (not, say, a news article about Survivor cast connections) and can
