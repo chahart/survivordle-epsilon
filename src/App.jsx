@@ -19,6 +19,8 @@ import Recall from "./pages/Recall";
 import Sandwich from "./pages/Sandwich";
 import Connections from "./pages/Connections";
 import ConnectionsFAQ from "./pages/ConnectionsFAQ";
+import Rank from "./pages/Rank";
+import RankGate from "./components/RankGate";
 import BB from "./pages/BB";
 import BBRecall from "./pages/BBRecall";
 import BBSandwich from "./pages/BBSandwich";
@@ -251,6 +253,7 @@ export default function App() {
             <Route path="/connections/community"     element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/stats"        element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/faq"           element={<ConnectionsFAQ />} />
+            <Route path="/rank/*" element={<RankGate><Rank contestants={contestants} /></RankGate>} />
             <Route path="/bb"           element={<BB colorblind={colorblind} />} />
             <Route path="/bb/archive"   element={<BB colorblind={colorblind} />} />
             <Route path="/bb/unlimited" element={<BB colorblind={colorblind} />} />
