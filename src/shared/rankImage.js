@@ -1,11 +1,9 @@
 // Draws the "My Ranking" board to a PNG (canvas, text only, no photos) so it
 // looks like the on-page list: one row per winner with a tribe-color bar.
 
-const TRIBE_HEX = {
-  "Magenta": "#c0306a", "Red": "#c0392b", "Orange": "#d9822b", "Yellow/Gold": "#d4a72c",
-  "Purple": "#7d4fb0", "Blue/Teal": "#2a8fa8", "Green": "#3d8f4f", "Brown": "#8a6040",
-};
+import { subOf, barColors } from "./rank";
 
+const ACCENT = "#e8742a"; // Survivordle orange; change for BB
 const W = 1080;
 const PAD = 56;
 const ROW_H = 64;
@@ -19,7 +17,7 @@ function fit(ctx, text, maxW) {
   return t + "…";
 }
 
-export async function renderRankImage(ids, byId, { title = "My Ranking", light = false } = {}) {
+export async function renderRankImage(ids, byId, { title = "My Ranking", subtitle = "Survivor winners", light = false } = {}) {
   try { await document.fonts.load("64px 'Bebas Neue'"); await document.fonts.load("600 28px 'DM Sans'"); } catch { /* fall back to system fonts */ }
 
   const list = ids.map(id => byId.get(id)).filter(Boolean);
@@ -41,13 +39,13 @@ export async function renderRankImage(ids, byId, { title = "My Ranking", light =
   ctx.fillRect(0, 0, W, H);
 
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = c.text;
+  ctx.fillStyle = ACCENT;
   ctx.textAlign = "center";
   ctx.font = "88px 'Bebas Neue', Impact, sans-serif";
   ctx.fillText(title.toUpperCase(), W / 2, 112);
   ctx.fillStyle = c.dim;
   ctx.font = "500 26px 'DM Sans', Arial, sans-serif";
-  ctx.fillText("Survivor winners", W / 2, 156);
+  ctx.fillText(subtitle, W / 2, 156);
 
   const x0 = PAD;
   const x1 = W - PAD;
@@ -55,8 +53,11 @@ export async function renderRankImage(ids, byId, { title = "My Ranking", light =
     const y = HEAD_H + i * ROW_H;
     ctx.fillStyle = c.row;
     ctx.fillRect(x0, y, x1 - x0, ROW_H);
-    ctx.fillStyle = TRIBE_HEX[w.tribe_color] || c.dim;
-    ctx.fillRect(x0, y, 8, ROW_H);
+    const cols = barColors(w);
+    cols.forEach((col, k) => {
+      ctx.fillStyle = col;
+      ctx.fillRect(x0, y + (k * ROW_H) / cols.length, 8, ROW_H / cols.length);
+    });
     ctx.fillStyle = c.line;
     ctx.fillRect(x0, y + ROW_H - 1, x1 - x0, 1);
 
@@ -64,14 +65,13 @@ export async function renderRankImage(ids, byId, { title = "My Ranking", light =
     ctx.textBaseline = "middle";
 
     ctx.textAlign = "right";
-    ctx.fillStyle = c.dim;
-    ctx.font = "500 26px 'DM Sans', Arial, sans-serif";
+    ctx.fillStyle = ACCENT;
+    ctx.font = "700 26px 'DM Sans', Arial, sans-serif";
     ctx.fillText(String(i + 1), x0 + 70, mid);
 
     ctx.textAlign = "right";
     ctx.font = "500 22px 'DM Sans', Arial, sans-serif";
-    const season = `S${w.season} · ${w.seasonName}`;
-    const seasonText = fit(ctx, season, 330);
+    const seasonText = fit(ctx, subOf(w), 400);
     ctx.fillText(seasonText, x1 - 22, mid);
     const seasonW = ctx.measureText(seasonText).width;
 
@@ -83,7 +83,7 @@ export async function renderRankImage(ids, byId, { title = "My Ranking", light =
 
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
-  ctx.fillStyle = c.dim;
+  ctx.fillStyle = ACCENT;
   ctx.font = "600 28px 'DM Sans', Arial, sans-serif";
   ctx.fillText("survivordle.com/rank", W / 2, H - 46);
 

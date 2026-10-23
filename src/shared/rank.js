@@ -1,7 +1,8 @@
 // Rank mode engine. Pure functions, no React / storage / network.
 //
 // A ranking session is { seed, order, segEnds, choices, manual }:
-//   order    — winner ids in the (seeded-shuffled) order they get inserted
+//   order    — item ids (winners or seasons) in the (seeded-shuffled) order they get inserted
+//   excluded — ids the user chose not to rank (seasons not watched)
 //   segEnds  — index in `order` where each batch ends (a new batch is added when
 //              new winners appear after a data update, so old answers stay valid)
 //   choices  — the user's answers so far, replayed to rebuild the state
@@ -16,13 +17,14 @@
 // of its remaining range (any pivot is valid; the middle band keeps votes low).
 //
 // Choice codes (about the current matchup: `cur` vs `other`):
-//   "w"  — cur is the better winner
-//   "l"  — other is the better winner
-//   "sc" — haven't seen cur's season (set cur aside)
-//   "so" — haven't seen other's season (set other aside)
+//   "w" — cur is the better one
+//   "l" — other is the better one
+//   "?" — "I don't know": show a different pair instead. If every pair that
+//         could still move this item is marked "?", the engine picks one
+//         (seeded coin flip) so the ranking can always finish.
 
-const BASE = 36;
 const POOL = 4;
+const BAND = 0.4; // pivot is drawn from the middle (1 - 2·BAND) of the range; 0.4 is within ~2% of optimal votes
 
 export function winnersOf(contestants) {
   const bySeason = new Map();
@@ -53,15 +55,17 @@ export function shuffledIds(ids, seed) {
   return out;
 }
 
-export function newSession(winnerIds, seed = Math.floor(Math.random() * 2 ** 31)) {
-  const order = shuffledIds(winnerIds, seed);
-  return { seed, order, segEnds: [order.length], choices: [], manual: null };
+// allIds: every item of this kind; selectedIds: the ones the user will rank.
+export function newSession(allIds, selectedIds = allIds, seed = Math.floor(Math.random() * 2 ** 31)) {
+  const order = shuffledIds(selectedIds, seed);
+  const picked = new Set(selectedIds);
+  return { seed, order, segEnds: [order.length], excluded: allIds.filter(id => !picked.has(id)), choices: [], manual: null };
 }
 
-// Adds winners that appeared after the session started (new seasons) as a new
+// Adds items that appeared after the session started (new seasons) as a new
 // batch, so the answers already given keep meaning the same thing.
 export function syncSession(session, winnerIds) {
-  const known = new Set(session.order);
+  const known = new Set([...session.order, ...(session.excluded || [])]);
   const added = winnerIds.filter(id => !known.has(id));
   if (!added.length) return session;
   const order = [...session.order, ...shuffledIds(added, session.seed)];
@@ -70,16 +74,16 @@ export function syncSession(session, winnerIds) {
 }
 
 // Rebuilds the full state from the session.
-// Returns { ranked, skipped, cur, other, flip, done, votes }.
+// Returns { ranked, cur, other, flip, done }.
 export function replay(session) {
   const { order, choices, seed } = session;
   const segEnds = session.segEnds || [order.length];
   const ranked = [];
-  const skipped = [];
   const active = []; // { id, lo, hi } — lo/hi are ranked ids bounding where it can go
+  const unsure = new Set(); // "curId|otherId" pairs the user said "?" to
   let idx = 0;
   let seg = 0;
-  let votes = 0;
+  let auto = 0; // forced coin-flip resolutions so far (keeps picks deterministic)
 
   const range = a => [
     a.lo == null ? 0 : ranked.indexOf(a.lo) + 1,
@@ -108,42 +112,53 @@ export function replay(session) {
     }
   };
 
+  const key = (a, p) => `${a.id}|${ranked[p]}`;
+
+  // Random matchup; if it was marked "?", the first unmarked pair instead.
   const pick = step => {
-    const rand = mulberry32((seed ^ Math.imul(step + 1, 0x9e3779b1)) >>> 0);
-    const a = active[Math.floor(rand() * active.length)];
-    const [lo, hi] = range(a);
-    const q = Math.floor((hi - lo) / 4);
+    const rand = mulberry32((seed ^ Math.imul(step + 1 + auto * 7919, 0x9e3779b1)) >>> 0);
+    const a0 = Math.floor(rand() * active.length);
+    const [lo, hi] = range(active[a0]);
+    const q = Math.floor((hi - lo) * BAND);
     const bandLo = lo + q;
-    const bandHi = hi - 1 - q;
-    const p = bandLo + Math.floor(rand() * (bandHi - bandLo + 1));
-    return { a, p, flip: rand() < 0.5 };
+    const p0 = bandLo + Math.floor(rand() * (hi - 1 - q - bandLo + 1));
+    const flip = rand() < 0.5;
+    if (!unsure.has(key(active[a0], p0))) return { a: active[a0], p: p0, flip };
+    for (let i = 0; i < active.length; i++) {
+      const a = active[(a0 + i) % active.length];
+      const [l, h] = range(a);
+      for (let p = l; p < h; p++) if (!unsure.has(key(a, p))) return { a, p, flip };
+    }
+    return { a: active[a0], p: p0, flip, forced: true };
+  };
+
+  const apply = (m, ch) => {
+    if (ch === "w") m.a.hi = ranked[m.p];
+    else if (ch === "l") m.a.lo = ranked[m.p];
+    else unsure.add(key(m.a, m.p));
+    settle();
+  };
+
+  // Next matchup the user must answer, or null when done.
+  const next = step => {
+    while (active.length) {
+      const m = pick(step);
+      if (!m.forced) return m;
+      apply(m, mulberry32((seed ^ Math.imul(++auto, 0x85ebca6b)) >>> 0)() < 0.5 ? "w" : "l");
+    }
+    return null;
   };
 
   settle();
   for (let i = 0; i < choices.length; i++) {
-    if (!active.length) break;
-    const { a, p } = pick(i);
-    const ch = choices[i];
-    if (ch === "w") { a.hi = ranked[p]; votes++; }
-    else if (ch === "l") { a.lo = ranked[p]; votes++; }
-    else if (ch === "sc") { active.splice(active.indexOf(a), 1); skipped.push(a.id); }
-    else if (ch === "so") {
-      const removed = ranked[p];
-      const pred = p > 0 ? ranked[p - 1] : null;
-      const succ = p < ranked.length - 1 ? ranked[p + 1] : null;
-      ranked.splice(p, 1);
-      skipped.push(removed);
-      for (const x of active) {
-        if (x.lo === removed) x.lo = pred;
-        if (x.hi === removed) x.hi = succ;
-      }
-    }
-    settle();
+    const m = next(i);
+    if (!m) break;
+    apply(m, choices[i]);
   }
 
-  if (!active.length) return { ranked, skipped, cur: null, other: null, flip: false, done: true, votes };
-  const { a, p, flip } = pick(choices.length);
-  return { ranked, skipped, cur: a.id, other: ranked[p], flip, done: false, votes };
+  const m = next(choices.length);
+  if (!m) return { ranked, cur: null, other: null, flip: false, done: true };
+  return { ranked, cur: m.a.id, other: ranked[m.p], flip: m.flip, done: false };
 }
 
 export function choose(session, code) {
@@ -174,29 +189,34 @@ export function moveItem(list, from, to) {
   return out;
 }
 
-// ── Share codes: seasons in rank order, 2 base-36 chars each ──
-export function encodeRanking(ids, winnersById) {
-  return ids
-    .map(id => winnersById.get(id))
-    .filter(Boolean)
-    .map(w => w.season.toString(BASE).padStart(2, "0"))
-    .join("");
+// Season numbers in rank order (what gets sent to the consensus).
+export function seasonsOf(ids, itemsById) {
+  return ids.map(id => itemsById.get(id)?.season).filter(s => s != null);
 }
 
-export function decodeRanking(code, winnersBySeason) {
-  if (!code || code.length % 2 !== 0 || !/^[0-9a-z]+$/.test(code)) return null;
-  const seen = new Set();
-  const out = [];
-  for (let i = 0; i < code.length; i += 2) {
-    const season = parseInt(code.slice(i, i + 2), BASE);
-    const w = winnersBySeason.get(season);
-    if (!w || seen.has(season)) return null;
-    seen.add(season);
-    out.push(w.id);
+export const TRIBE_HEX = {
+  "Magenta": "#c0306a", "Red": "#c0392b", "Orange": "#d9822b", "Yellow/Gold": "#d4a72c",
+  "Purple": "#7d4fb0", "Blue/Teal": "#2a8fa8", "Green": "#3d8f4f", "Brown": "#8a6040",
+};
+
+// Accent colors for an item, top to bottom: a winner's own tribe, or a season's
+// starting tribes with the winner's tribe first.
+export const barColors = w => (w.tribes || [w.tribe_color]).map(t => TRIBE_HEX[t] || "#888");
+
+// Seasons as rankable items, shaped like winners so the UI treats both alike.
+export function seasonItems(contestants) {
+  const bySeason = new Map();
+  for (const c of contestants || []) {
+    const e = bySeason.get(c.season) || { season: c.season, name: c.seasonName, seasonName: c.seasonName, winner: null, winnerColor: null, colors: new Map() };
+    e.colors.set(c.startingTribe, c.tribe_color);
+    if (c.placement === 1) { e.winner = c.name; e.winnerColor = c.tribe_color; }
+    bySeason.set(c.season, e);
   }
-  return out.length ? out : null;
+  return [...bySeason.values()].sort((a, b) => a.season - b.season).map(e => ({
+    id: `S${e.season}`, season: e.season, name: e.name, seasonName: e.seasonName, winner: e.winner,
+    tribes: [e.winnerColor, ...[...e.colors.values()].filter(c => c !== e.winnerColor)].filter(Boolean),
+    sub: `Season ${e.season}`, // winner stays off boards and shares; only matchup cards show it
+  }));
 }
 
-export function seasonsOf(ids, winnersById) {
-  return ids.map(id => winnersById.get(id)?.season).filter(s => s != null);
-}
+export const subOf = w => w.sub || `S${w.season} · ${w.seasonName}`;

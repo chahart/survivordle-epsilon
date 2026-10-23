@@ -10,13 +10,13 @@ const headers = {
   "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
 };
 
-// seasons: winner season numbers in rank order (best first).
-export async function submitRankRemote(anonId, seasons) {
+// kind: "winners" | "seasons". seasons: season numbers in rank order (best first).
+export async function submitRankRemote(anonId, kind, seasons) {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_rank`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_rank_board`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ p_anon_id: anonId, p_ranking: seasons }),
+      body: JSON.stringify({ p_anon_id: anonId, p_kind: kind, p_ranking: seasons }),
     });
     return res.ok;
   } catch {
@@ -25,12 +25,12 @@ export async function submitRankRemote(anonId, seasons) {
 }
 
 // Returns { total, rows: [{ season, avgPct, votes }] } best first, or null.
-export async function fetchRankLeaderboard() {
+export async function fetchRankLeaderboard(kind) {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_rank_leaderboard`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_rank_board`, {
       method: "POST",
       headers,
-      body: "{}",
+      body: JSON.stringify({ p_kind: kind }),
     });
     if (!res.ok) return null;
     const data = await res.json();
