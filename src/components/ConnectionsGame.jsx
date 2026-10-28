@@ -338,7 +338,10 @@ export default function ConnectionsGame({
               : shuffling
               ? { animationDelay: `${(idx % 4) * 25}ms` }
               : undefined;
-            const lengthClass = item.length > 24 ? " cx-tile-xs" : item.length > 16 ? " cx-tile-sm" : "";
+            // Tier by whichever is bigger: total length or longest single word (words can't wrap)
+            const longestWord = Math.max(...item.split(" ").map(w => w.length));
+            const tier = Math.max(item.length > 24 ? 2 : item.length > 16 ? 1 : 0, longestWord > 11 ? 2 : longestWord > 8 ? 1 : 0);
+            const lengthClass = ["", " cx-tile-sm", " cx-tile-xs"][tier];
             return (
               <div
                 key={item}
