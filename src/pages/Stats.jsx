@@ -1,9 +1,84 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import useSEO from "../shared/useSEO";
-import { fetchDailyStats, fetchGlobalStats } from "../shared/supabase";
-import { loadStorage, loadUnlimitedStats, loadSandwichStats, loadSandwichUnlimitedStats } from "../shared/storage";
-import { RecallStatsTab } from "../shared/recallStats";
+import { fetchDailyStats, fetchGlobalStats, fetchBBDailyStats, fetchBBGlobalStats, fetchDailyAvgGuesses } from "../shared/supabase";
+import {
+  loadStorage, loadUnlimitedStats, loadSandwichStats, loadSandwichUnlimitedStats,
+  loadBBStats, loadBBUnlimitedStats, loadBBSandwichStats, loadBBSandwichUnlimitedStats,
+  loadConnectionsStats,
+} from "../shared/storage";
+import { RecallStatsTab, RecallRankings } from "../shared/recallStats";
+
+const BB_CSS = `
+  .bb-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.2rem, 8vw, 4rem);
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+  }
+  .bb-title-left {
+    background: linear-gradient(to right, #1a6fbf 0%, #5aaedd 60%, #b8e4f5 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    vertical-align: middle;
+  }
+  .bb-title-eye {
+    font-size: clamp(2.6rem, 9vw, 4.6rem);
+    line-height: 1;
+    display: inline-block;
+    -webkit-text-fill-color: initial;
+    vertical-align: middle;
+    margin: 0 0.02em;
+  }
+  .bb-title-right {
+    background: linear-gradient(to right, #b8e4f5 0%, #5aaedd 40%, #1a6fbf 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    vertical-align: middle;
+  }
+  .bb-header { text-align: center; margin-bottom: 4px; }
+
+  /* Recolor Survivordle-orange brand accents to BB blue on this page.
+     Semantic colors (correct/close/wrong, difficulty easy/hard) are left untouched. */
+  .bb-theme .ul-tab.active,
+  .bb-theme .sp-section-title,
+  .bb-theme .stats-grid-num,
+  .bb-theme .sp-fg-name {
+    color: #5aaedd;
+  }
+  .bb-theme .stat-bar {
+    background: linear-gradient(90deg, #1a6fbf, #5aaedd);
+  }
+  .bb-theme .sp-fg-bar {
+    background: linear-gradient(90deg, #1a6fbf99, #5aaedd99);
+  }
+`;
+
+// Everything that differs between the two shows lives here.
+const SHOWS = {
+  sv: {
+    emoji: "🔥", accent: "#e8742a", path: "/stats", dailyMode: "daily",
+    loadDaily:    () => loadStorage().stats,
+    loadUnlimited: loadUnlimitedStats,
+    loadSwDaily:  loadSandwichStats,
+    loadSwUnlim:  loadSandwichUnlimitedStats,
+    fetchDaily: fetchDailyStats, fetchGlobal: fetchGlobalStats,
+    seoTitle: "Stats | Survivordle", seoDesc: "Survivordle statistics: your personal stats, today's difficulty rating, and global player data.",
+  },
+  bb: {
+    emoji: "👁", accent: "#5aaedd", path: "/bb/stats", dailyMode: "bb",
+    loadDaily:    loadBBStats,
+    loadUnlimited: loadBBUnlimitedStats,
+    loadSwDaily:  loadBBSandwichStats,
+    loadSwUnlim:  loadBBSandwichUnlimitedStats,
+    fetchDaily: fetchBBDailyStats, fetchGlobal: fetchBBGlobalStats,
+    seoTitle: "Stats | Big Brotherdle", seoDesc: "Big Brotherdle statistics: your personal stats, today's difficulty rating, and global player data.",
+  },
+};
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function friendlyCount(n) {
@@ -14,11 +89,11 @@ function friendlyCount(n) {
   return num.toLocaleString();
 }
 
-function difficultyLabel(avg, sampleOk, easyThreshold, hardThreshold) {
+function difficultyLabel(avg, sampleOk, easyThreshold, hardThreshold, cfg = SHOWS.sv) {
   if (!sampleOk) return { label: "Still calculating…", color: "var(--text3)", emoji: "⏳" };
   if (avg <= easyThreshold) return { label: "Easier than usual", color: "#4aaa4a", emoji: "😊" };
   if (avg >= hardThreshold) return { label: "Harder than usual", color: "#e05040", emoji: "💀" };
-  return                            { label: "Typical difficulty", color: "#e8742a", emoji: "🔥" };
+  return                            { label: "Typical difficulty", color: cfg.accent, emoji: cfg.emoji };
 }
 
 function getThresholds(chartDays) {
@@ -37,12 +112,15 @@ function pct(count, total) {
 }
 
 // ── My Stats Tab ───────────────────────────────────────────────────────────────
-function MyStatsTab() {
-  const daily    = loadStorage();
-  const unlim    = loadUnlimitedStats();
-  const swDaily  = loadSandwichStats();
-  const swUnlim  = loadSandwichUnlimitedStats();
-  const dStats   = daily.stats || { played: 0, wins: 0, currentStreak: 0, maxStreak: 0, dist: {} };
+function MyStatsTab({ cfg, part }) {
+  const [globalAvg, setGlobalAvg] = useState(null);
+  useEffect(() => {
+    if (part === "wordle") fetchDailyAvgGuesses(cfg.dailyMode).then(d => setGlobalAvg(d?.avg_guesses ?? null));
+  }, [cfg, part]);
+  const unlim    = cfg.loadUnlimited();
+  const swDaily  = cfg.loadSwDaily();
+  const swUnlim  = cfg.loadSwUnlim();
+  const dStats   = cfg.loadDaily() || { played: 0, wins: 0, currentStreak: 0, maxStreak: 0, dist: {} };
   const dPct     = dStats.played > 0 ? Math.round((dStats.wins / dStats.played) * 100) : 0;
   const dDist    = dStats.dist || {};
   const dMax     = Math.max(...Object.values(dDist).map(Number), 1);
@@ -62,8 +140,10 @@ function MyStatsTab() {
 
   return (
     <div className="stats-page-body">
+      {part === "wordle" && (
+        <>
       {/* Daily personal */}
-      <div className="sp-section-title">🔥 Daily</div>
+      <div className="sp-section-title">{cfg.emoji} Daily</div>
       <div className="stats-grid" style={{ marginBottom: "16px" }}>
         {[
           [dStats.played,         "Played"],
@@ -80,6 +160,10 @@ function MyStatsTab() {
 
       {dStats.wins > 0 && (
         <>
+          <p style={{ textAlign:"center", fontSize:"13px", color:"var(--text2)", marginBottom:"16px" }}>
+            Avg guesses per win — You: <strong>{(Object.entries(dDist).reduce((t,[n,c])=>t+Number(n)*c,0)/dStats.wins).toFixed(2)}</strong>
+            {globalAvg != null && <> · Everyone: <strong>{Number(globalAvg).toFixed(2)}</strong></>}
+          </p>
           <div className="sp-sub-title">Guess Distribution</div>
           {[1,2,3,4,5,6,7,8].map(n => {
             const count = Number(dDist[n] || 0);
@@ -137,9 +221,11 @@ function MyStatsTab() {
           })}
         </>
       )}
+        </>
+      )}
 
-      <div className="stats-divider" />
-
+      {part === "sandwich" && (
+        <>
       {/* Sandwich Daily */}
       <div className="sp-section-title">🥪 Sandwich Daily</div>
       {swDaily.played === 0 ? (
@@ -223,8 +309,10 @@ function MyStatsTab() {
           )}
         </>
       )}
+        </>
+      )}
 
-      {dStats.played === 0 && unlim.played === 0 && swDaily.played === 0 && swUnlim.played === 0 && (
+      {part === "wordle" && dStats.played === 0 && unlim.played === 0 && (
         <p style={{ textAlign:"center", color:"var(--text3)", marginTop:"40px" }}>
           Play some games to see your stats here!
         </p>
@@ -236,7 +324,7 @@ function MyStatsTab() {
 // ── Daily Tab ──────────────────────────────────────────────────────────────────
 const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-function DailyTab({ data, loading, onRetry }) {
+function DailyTab({ data, loading, onRetry, cfg }) {
   if (loading) return <div className="loading">Loading daily stats…</div>;
   if (!data)   return (
     <div style={{ textAlign:"center", marginTop:"40px" }}>
@@ -263,7 +351,7 @@ function DailyTab({ data, loading, onRetry }) {
   const sampleOk   = today && Number(today.solve_count) >= 100;
   const avgGuesses = today ? Number(today.avg_guesses) : null;
   const { easy: easyThresh, hard: hardThresh } = getThresholds(chartDays);
-  const diff       = difficultyLabel(avgGuesses, sampleOk, easyThresh, hardThresh);
+  const diff       = difficultyLabel(avgGuesses, sampleOk, easyThresh, hardThresh, cfg);
 
   return (
     <div className="stats-page-body">
@@ -293,7 +381,7 @@ function DailyTab({ data, loading, onRetry }) {
           <div className="sp-chart">
             {chartDays.map((row, i) => {
               const avg     = Number(row.avg_guesses);
-              const d       = difficultyLabel(avg, Number(row.solve_count) >= 100, easyThresh, hardThresh);
+              const d       = difficultyLabel(avg, Number(row.solve_count) >= 100, easyThresh, hardThresh, cfg);
               const barPct  = Math.round((avg / 8) * 100);
               const date    = new Date(row.day + "T12:00:00Z");
               const dayName = DAY_LABELS[date.getUTCDay()];
@@ -307,7 +395,7 @@ function DailyTab({ data, loading, onRetry }) {
                         height: `${Math.max(barPct, 8)}%`,
                         background: d.color === "#4aaa4a" ? "#1a4d1a"
                                   : d.color === "#e05040" ? "#4a1010"
-                                  : "#4a2a05",
+                                  : cfg === SHOWS.bb ? "#0a2a4a" : "#4a2a05",
                         borderColor: d.color,
                       }}
                       title={`${avg} avg guesses`}
@@ -326,7 +414,7 @@ function DailyTab({ data, loading, onRetry }) {
 }
 
 // ── Global Tab ─────────────────────────────────────────────────────────────────
-function GlobalTab({ data, loading, onRetry }) {
+function GlobalTab({ data, loading, onRetry, show }) {
   if (loading) return <div className="loading">Loading global stats…</div>;
   if (!data)   return (
     <div style={{ textAlign:"center", marginTop:"40px" }}>
@@ -413,66 +501,124 @@ function GlobalTab({ data, loading, onRetry }) {
         </>
       )}
 
+      <RecallRankings show={show} />
+    </div>
+  );
+}
+
+// ── Connections (Survivordle only) ─────────────────────────────────────────────
+function ConnectionsTab() {
+  const st = loadConnectionsStats();
+  const winPct = st.played ? Math.round((st.wins / st.played) * 100) : 0;
+  return (
+    <div className="stats-page-body">
+      <div className="sp-section-title">🧩 Connections (Weekly)</div>
+      {st.played === 0 ? (
+        <p style={{ textAlign:"center", color:"var(--text3)", fontSize:"13px" }}>No games yet</p>
+      ) : (
+        <div className="stats-grid">
+          {[[st.played, "Played"], [`${winPct}%`, "Win %"], [st.currentStreak, "Streak"], [st.maxStreak, "Max Streak"]].map(([val, lbl]) => (
+            <div className="stats-grid-item" key={lbl}>
+              <span className="stats-grid-num">{val}</span>
+              <span className="stats-grid-label">{lbl}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Main Stats Page ────────────────────────────────────────────────────────────
-export default function Stats() {
-  const [activeTab,     setActiveTab]     = useState("my");
+// One page for both shows. /stats = Survivordle, /bb/stats = Big Brotherdle.
+// ?tab= selects the tab so game pages can deep-link (my, recall, sandwich, connections, daily, global).
+export default function Stats({ show = "sv" }) {
+  const cfg = SHOWS[show];
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const tabs = [
+    ["my", "My Stats"], ["recall", "Recall"], ["sandwich", "Sandwich"],
+    ...(show === "sv" ? [["connections", "Connections"]] : []),
+    ["daily", "Daily"], ["global", "Global"],
+  ];
+  const requested = params.get("tab");
+  const activeTab = tabs.some(([k]) => k === requested) ? requested : "my";
+
   const [dailyData,     setDailyData]     = useState(null);
   const [globalData,    setGlobalData]    = useState(null);
   const [loadingDaily,  setLoadingDaily]  = useState(true);
   const [loadingGlobal, setLoadingGlobal] = useState(true);
-  const navigate = useNavigate();
 
   function loadDaily() {
     setLoadingDaily(true);
-    fetchDailyStats().then(d  => { setDailyData(d);  setLoadingDaily(false);  });
+    cfg.fetchDaily().then(d  => { setDailyData(d);  setLoadingDaily(false);  });
   }
   function loadGlobal() {
     setLoadingGlobal(true);
-    fetchGlobalStats().then(d => { setGlobalData(d); setLoadingGlobal(false); });
+    cfg.fetchGlobal().then(d => { setGlobalData(d); setLoadingGlobal(false); });
   }
 
-  useEffect(() => { loadDaily(); loadGlobal(); }, []);
+  useEffect(() => { loadDaily(); loadGlobal(); }, [show]);
 
   useSEO({
-    title: "Stats | Survivordle",
-    description: "Survivordle statistics: your personal stats, today's difficulty rating, and global player data.",
-    canonical: "https://survivordle.com/stats",
+    title: cfg.seoTitle,
+    description: cfg.seoDesc,
+    canonical: `https://survivordle.com${cfg.path}`,
   });
 
+  const switchShow = to => navigate(`${SHOWS[to].path}${activeTab === "my" ? "" : `?tab=${activeTab}`}`);
+  const pill = (k, label) => (
+    <button className={`ul-subtab${show === k ? " active" : ""}`} onClick={() => show !== k && switchShow(k)}>{label}</button>
+  );
+
   return (
-    <>
-      <header className="header">
-        <div className="logo">
-          <span className="logo-surv">SURV</span>
-          <span className="logo-torch">
-            <span className="logo-torch-flame">🔥</span>
-            <span className="logo-torch-stem" />
-          </span>
-          <span className="logo-vor">VOR</span>
-          <span className="logo-dle">DLE</span>
-        </div>
-        <div className="torch-row">
-          <div className="torch-line" />
-          <div className="torch-line r" />
-        </div>
+    <div className={show === "bb" ? "bb-theme" : undefined}>
+      {show === "bb" && <style>{BB_CSS}</style>}
+      <header className={`header${show === "bb" ? " bb-header" : ""}`}>
+        {show === "bb" ? (
+          <div className="bb-title">
+            <span className="bb-title-left">BIG BR</span>
+            <span className="bb-title-eye">👁</span>
+            <span className="bb-title-right">THERDLE</span>
+          </div>
+        ) : (
+          <>
+            <div className="logo">
+              <span className="logo-surv">SURV</span>
+              <span className="logo-torch">
+                <span className="logo-torch-flame">🔥</span>
+                <span className="logo-torch-stem" />
+              </span>
+              <span className="logo-vor">VOR</span>
+              <span className="logo-dle">DLE</span>
+            </div>
+            <div className="torch-row">
+              <div className="torch-line" />
+              <div className="torch-line r" />
+            </div>
+          </>
+        )}
         <div className="tagline">Statistics</div>
       </header>
 
-      <div className="ul-tabs">
-        <button className={`ul-tab${activeTab === "my"     ? " active" : ""}`} onClick={() => setActiveTab("my")}>My Stats</button>
-        <button className={`ul-tab${activeTab === "recall" ? " active" : ""}`} onClick={() => setActiveTab("recall")}>Recall</button>
-        <button className={`ul-tab${activeTab === "daily"  ? " active" : ""}`} onClick={() => setActiveTab("daily")}>Daily</button>
-        <button className={`ul-tab${activeTab === "global" ? " active" : ""}`} onClick={() => setActiveTab("global")}>Global</button>
+      <div className="ul-subtabs" style={{ justifyContent: "center", marginBottom: "12px" }}>
+        {pill("sv", "Survivordle")}
+        {pill("bb", "Big Brotherdle")}
       </div>
 
-      {activeTab === "my"     && <MyStatsTab />}
-      {activeTab === "recall" && <RecallStatsTab />}
-      {activeTab === "daily"  && <DailyTab  data={dailyData}  loading={loadingDaily}  onRetry={loadDaily}  />}
-      {activeTab === "global" && <GlobalTab data={globalData} loading={loadingGlobal} onRetry={loadGlobal} />}
-    </>
+      <div className="ul-tabs">
+        {tabs.map(([k, label]) => (
+          <button key={k} className={`ul-tab${activeTab === k ? " active" : ""}`}
+            onClick={() => setParams(k === "my" ? {} : { tab: k }, { replace: true })}>{label}</button>
+        ))}
+      </div>
+
+      {activeTab === "my"          && <MyStatsTab cfg={cfg} part="wordle" />}
+      {activeTab === "recall"      && <RecallStatsTab show={show} />}
+      {activeTab === "sandwich"    && <MyStatsTab cfg={cfg} part="sandwich" />}
+      {activeTab === "connections" && <ConnectionsTab />}
+      {activeTab === "daily"       && <DailyTab  cfg={cfg} data={dailyData}  loading={loadingDaily}  onRetry={loadDaily}  />}
+      {activeTab === "global"      && <GlobalTab show={show} data={globalData} loading={loadingGlobal} onRetry={loadGlobal} />}
+    </div>
   );
 }

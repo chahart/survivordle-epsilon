@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import CSS, { TAB_CSS, SUBTAB_CSS, PRIVACY_CSS, STATS_PAGE_CSS, ABOUT_CSS, FOOTER_CSS, RECALL_CSS, SANDWICH_CSS, CONNECTIONS_CSS } from "./shared/styles";
 import NavBar from "./components/NavBar";
 import BBNavBar from "./components/BBNavBar";
@@ -26,7 +26,6 @@ import BBRecall from "./pages/BBRecall";
 import BBSandwich from "./pages/BBSandwich";
 import BBHowToPlay from "./pages/BBHowToPlay";
 import BBFAQ from "./pages/BBFAQ";
-import BBStats from "./pages/BBStats";
 import { AnnouncementModal, BBAnnouncementModal, ConnectionsAnnouncementModal, BBSeason28AnnouncementModal, CommunityAnnouncementModal } from "./components/Modals";
 
 const BANNER_KEY = "survivordle_announcement_sandwich_jun23";
@@ -231,7 +230,7 @@ export default function App() {
             <Route path="/"            element={<Daily     contestants={contestants} colorblind={colorblind} />} />
             <Route path="/archive"     element={<Archive   contestants={contestants} colorblind={colorblind} />} />
             <Route path="/unlimited"   element={<Unlimited contestants={contestants} colorblind={colorblind} />} />
-            <Route path="/stats"       element={<Stats />} />
+            <Route path="/stats"       element={<Stats show="sv" />} />
             <Route path="/privacy"     element={<Privacy />} />
             <Route path="/about"       element={<About />} />
             <Route path="/how-to-play" element={<HowToPlay />} />
@@ -241,31 +240,31 @@ export default function App() {
             <Route path="/recall"             element={<Recall contestants={contestants} />} />
             <Route path="/recall/archive"   element={<Recall contestants={contestants} />} />
             <Route path="/recall/unlimited" element={<Recall contestants={contestants} />} />
-            <Route path="/recall/stats"     element={<Recall contestants={contestants} />} />
+            <Route path="/recall/stats" element={<Navigate to="/stats?tab=recall" replace />} />
             <Route path="/sandwich"           element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
             <Route path="/sandwich/archive"   element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
             <Route path="/sandwich/unlimited" element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
-            <Route path="/sandwich/stats"     element={<Sandwich contestants={contestants} colorblind={colorblind} />} />
+            <Route path="/sandwich/stats" element={<Navigate to="/stats?tab=sandwich" replace />} />
             <Route path="/connections"               element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/archive"       element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/custom"        element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/custom/:code"  element={<Connections colorblind={colorblind} />} />
             <Route path="/connections/community"     element={<Connections colorblind={colorblind} />} />
-            <Route path="/connections/stats"        element={<Connections colorblind={colorblind} />} />
+            <Route path="/connections/stats" element={<Navigate to="/stats?tab=connections" replace />} />
             <Route path="/connections/faq"           element={<ConnectionsFAQ />} />
             <Route path="/rank/*" element={<RankGate><Rank contestants={contestants} /></RankGate>} />
             <Route path="/bb"           element={<BB colorblind={colorblind} />} />
             <Route path="/bb/archive"   element={<BB colorblind={colorblind} />} />
             <Route path="/bb/unlimited" element={<BB colorblind={colorblind} />} />
-            <Route path="/bb/stats"     element={<BBStats />} />
+            <Route path="/bb/stats"     element={<Stats show="bb" />} />
             <Route path="/bb/recall"           element={<BBRecall colorblind={colorblind} />} />
             <Route path="/bb/recall/archive"   element={<BBRecall colorblind={colorblind} />} />
             <Route path="/bb/recall/unlimited" element={<BBRecall colorblind={colorblind} />} />
-            <Route path="/bb/recall/stats"     element={<BBRecall colorblind={colorblind} />} />
+            <Route path="/bb/recall/stats" element={<Navigate to="/bb/stats?tab=recall" replace />} />
             <Route path="/bb/sandwich"           element={<BBSandwich colorblind={colorblind} />} />
             <Route path="/bb/sandwich/archive"   element={<BBSandwich colorblind={colorblind} />} />
             <Route path="/bb/sandwich/unlimited" element={<BBSandwich colorblind={colorblind} />} />
-            <Route path="/bb/sandwich/stats"     element={<BBSandwich colorblind={colorblind} />} />
+            <Route path="/bb/sandwich/stats" element={<Navigate to="/bb/stats?tab=sandwich" replace />} />
             <Route path="/bb/how-to-play" element={<BBHowToPlay />} />
             <Route path="/bb/faq"         element={<BBFAQ />} />
           </Routes>
