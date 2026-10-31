@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import useSEO from "../shared/useSEO";
-import { fetchDailyStats, fetchGlobalStats, fetchBBDailyStats, fetchBBGlobalStats, fetchDailyAvgGuesses } from "../shared/supabase";
+import { fetchDailyStats, fetchGlobalStats, fetchBBDailyStats, fetchBBGlobalStats, fetchDailyAvgGuesses, fetchSandwichGlobalStats } from "../shared/supabase";
 import {
   loadStorage, loadUnlimitedStats, loadSandwichStats, loadSandwichUnlimitedStats,
   loadBBStats, loadBBUnlimitedStats, loadBBSandwichStats, loadBBSandwichUnlimitedStats,
   loadConnectionsStats,
 } from "../shared/storage";
-import { RecallStatsTab, RecallRankings } from "../shared/recallStats";
+import { RecallStatsTab, RecallRankings, RecallRankCol } from "../shared/recallStats";
 
 const BB_CSS = `
   .bb-title {
@@ -413,6 +413,58 @@ function DailyTab({ data, loading, onRetry, cfg }) {
   );
 }
 
+// ── Sandwich global (under the Global tab) ─────────────────────────────────────
+function SandwichGlobal({ show }) {
+  const [data, setData] = useState(null);
+  useEffect(() => { fetchSandwichGlobalStats(show).then(setData); }, [show]);
+  const games = Number(data?.total_games || 0);
+  if (!games) return null;
+  const wins = Number(data.total_wins || 0);
+  const dist = data.dist || {};
+  const distMax = Math.max(...Object.values(dist).map(Number), 1);
+
+  return (
+    <>
+      <div className="stats-divider" />
+      <div className="sp-section-title">🥪 Sandwich</div>
+      <div className="stats-grid" style={{ marginBottom: "16px" }}>
+        {[
+          [friendlyCount(games), "Games Played"],
+          [`${pct(wins, games)}%`, "Solve Rate"],
+          [data.avg_guesses != null ? Number(data.avg_guesses).toFixed(2) : "—", "Avg Guesses"],
+        ].map(([val, lbl]) => (
+          <div className="stats-grid-item" key={lbl}>
+            <span className="stats-grid-num">{val}</span>
+            <span className="stats-grid-label">{lbl}</span>
+          </div>
+        ))}
+      </div>
+      {wins > 0 && [1,2,3,4].map(n => {
+        const count = Number(dist[n] || 0);
+        return (
+          <div key={n} className="stat-row">
+            <span className="stat-label">{n}</span>
+            <div className="stat-bar-wrap">
+              <div className={`stat-bar${count === distMax ? " best" : ""}`} style={{ width: count > 0 ? `${Math.max(Math.round((count/distMax)*100), 4)}%` : "0%" }}>
+                {count > 0 && <span className="stat-bar-count">{pct(count, wins)}%</span>}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      {(data.easiest?.length > 0 || data.hardest?.length > 0) && (
+        <>
+        <div className="sp-sub-title" style={{ marginTop: "16px" }}>Solved on the 1st guess</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <RecallRankCol title="Easiest" rows={data.easiest} color="#4aaa4a" />
+          <RecallRankCol title="Hardest" rows={data.hardest} color="#e05040" />
+        </div>
+        </>
+      )}
+    </>
+  );
+}
+
 // ── Global Tab ─────────────────────────────────────────────────────────────────
 function GlobalTab({ data, loading, onRetry, show }) {
   if (loading) return <div className="loading">Loading global stats…</div>;
@@ -502,6 +554,7 @@ function GlobalTab({ data, loading, onRetry, show }) {
       )}
 
       <RecallRankings show={show} />
+      <SandwichGlobal show={show} />
     </div>
   );
 }

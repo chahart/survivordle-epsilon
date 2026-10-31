@@ -92,7 +92,7 @@ function RecallStatsSection({ results, emptyMsg }) {
 }
 
 const RECALL_SOURCES = {
-  sv: { daily: loadAllRecallDailyResults,   archive: loadAllRecallArchiveResults, unlimited: loadRecallUnlimitedHistory,   fetchGlobal: fetchRecallGlobalStats },
+  sv: { daily: loadAllRecallDailyResults,   unlimited: loadRecallUnlimitedHistory,   fetchGlobal: fetchRecallGlobalStats },
   bb: { daily: loadAllBBRecallDailyResults, archive: null,                        unlimited: loadBBRecallUnlimitedHistory, fetchGlobal: fetchBBRecallGlobalStats },
 };
 
@@ -104,7 +104,7 @@ function friendlyK(n) {
   return num.toLocaleString();
 }
 
-function RecallRankCol({ title, rows, color }) {
+export function RecallRankCol({ title, rows, color }) {
   return (
     <div>
       <div className="sp-sub-title" style={{ color }}>{title}</div>
@@ -183,39 +183,31 @@ function RecallGlobal({ fetchGlobal }) {
   );
 }
 
-// Easiest/hardest five only; used under the Global tab.
+// Global recall block for the Global tab: totals, grade distribution, easiest/hardest.
 export function RecallRankings({ show = "sv" }) {
-  const [data, setData] = useState(null);
-  useEffect(() => { RECALL_SOURCES[show].fetchGlobal().then(setData); }, [show]);
-  if (!data?.easiest?.length && !data?.hardest?.length) return null;
   return (
     <>
       <div className="stats-divider" />
-      <div className="sp-section-title">Recall: Easiest &amp; Hardest</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-        <RecallRankCol title="Easiest" rows={data.easiest} color="#4aaa4a" />
-        <RecallRankCol title="Hardest" rows={data.hardest} color="#e05040" />
-      </div>
+      <div className="sp-section-title">Recall</div>
+      <RecallGlobal fetchGlobal={RECALL_SOURCES[show].fetchGlobal} />
     </>
   );
 }
 
+// Personal recall stats: daily, archive (Survivordle only) and unlimited stacked on one page.
 export function RecallStatsTab({ show = "sv", bodyClass = "stats-page-body" }) {
-  const [subTab, setSubTab] = useState("daily");
   const src = RECALL_SOURCES[show];
-  const tabs = [["daily", "Daily"], ...(src.archive ? [["archive", "Archive"]] : []), ["unlimited", "Unlimited"], ["global", "Global"]];
-  const results = { daily: src.daily, archive: src.archive, unlimited: src.unlimited }[subTab]?.();
+  const sections = [["daily", "Daily"], ...(src.archive ? [["archive", "Archive"]] : []), ["unlimited", "Unlimited"]];
 
   return (
     <div className={bodyClass}>
-      <div className="ul-subtabs" style={{ marginBottom: "20px", marginTop: "0" }}>
-        {tabs.map(([k, label]) => (
-          <button key={k} className={`ul-subtab${subTab === k ? " active" : ""}`} onClick={() => setSubTab(k)}>{label}</button>
-        ))}
-      </div>
-      {subTab === "global"
-        ? <RecallGlobal fetchGlobal={src.fetchGlobal} />
-        : <RecallStatsSection results={results} emptyMsg={`Play some Recall ${subTab} puzzles to see your stats!`} />}
+      {sections.map(([k, label], i) => (
+        <div key={k}>
+          {i > 0 && <div className="stats-divider" />}
+          <div className="sp-section-title">{label}</div>
+          <RecallStatsSection results={src[k]()} emptyMsg={`No Recall ${label} games yet`} />
+        </div>
+      ))}
     </div>
   );
 }

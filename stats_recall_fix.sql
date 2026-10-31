@@ -1,5 +1,5 @@
--- Recall global stats: single pass (the old Survivor version times out at anon's 3s limit).
--- Run in the Supabase SQL Editor.
+-- Recall global stats: single pass. Totals = daily + unlimited; easiest/hardest = unlimited only.
+-- Safe to re-run. Run in the Supabase SQL Editor.
 
 create or replace function public.get_recall_global_stats()
 returns json
@@ -7,11 +7,13 @@ language sql
 security definer
 set statement_timeout = '30s'
 as $$
+  -- Totals, score and grades cover daily + unlimited; easiest/hardest are unlimited only.
   with base as materialized (
-    select puzzle, score, grade from recall_events where mode = 'recall_unlimited'
+    select puzzle, score, grade, mode from recall_events where mode in ('recall_daily', 'recall_unlimited')
   ),
   agg as (
-    select count(*) as n, round(avg(score)) as avg_score,
+    select count(*) as n, count(*) filter (where mode = 'recall_unlimited') as unl,
+      round(avg(score)) as avg_score,
       round(avg(case grade
         when 'A+' then 4.0 when 'A' then 4.0 when 'A-' then 3.66
         when 'B+' then 3.33 when 'B' then 3.0 when 'B-' then 2.66
@@ -27,11 +29,11 @@ as $$
   ),
   per_puzzle as (
     select puzzle, round(avg(score)) as avg_score
-    from base where puzzle is not null
+    from base where puzzle is not null and mode = 'recall_unlimited'
     group by puzzle having count(*) >= 10
   )
   select json_build_object(
-    'total_plays', n, 'unlimited_plays', n, 'avg_score', avg_score, 'avg_gpa', avg_gpa,
+    'total_plays', n, 'unlimited_plays', unl, 'avg_score', avg_score, 'avg_gpa', avg_gpa,
     'grade_dist', json_build_object('A', a, 'B', b, 'C', c, 'D', d, 'F', f),
     'easiest', (select json_agg(r) from (select puzzle, avg_score from per_puzzle order by avg_score desc, puzzle limit 5) r),
     'hardest', (select json_agg(r) from (select puzzle, avg_score from per_puzzle order by avg_score asc, puzzle limit 5) r)
@@ -45,11 +47,13 @@ language sql
 security definer
 set statement_timeout = '30s'
 as $$
+  -- Totals, score and grades cover daily + unlimited; easiest/hardest are unlimited only.
   with base as materialized (
-    select puzzle, score, grade from bb_recall_events where mode = 'bb_recall_unlimited'
+    select puzzle, score, grade, mode from bb_recall_events where mode in ('bb_recall_daily', 'bb_recall_unlimited')
   ),
   agg as (
-    select count(*) as n, round(avg(score)) as avg_score,
+    select count(*) as n, count(*) filter (where mode = 'bb_recall_unlimited') as unl,
+      round(avg(score)) as avg_score,
       round(avg(case grade
         when 'A+' then 4.0 when 'A' then 4.0 when 'A-' then 3.66
         when 'B+' then 3.33 when 'B' then 3.0 when 'B-' then 2.66
@@ -65,11 +69,11 @@ as $$
   ),
   per_puzzle as (
     select puzzle, round(avg(score)) as avg_score
-    from base where puzzle is not null
+    from base where puzzle is not null and mode = 'bb_recall_unlimited'
     group by puzzle having count(*) >= 10
   )
   select json_build_object(
-    'total_plays', n, 'unlimited_plays', n, 'avg_score', avg_score, 'avg_gpa', avg_gpa,
+    'total_plays', n, 'unlimited_plays', unl, 'avg_score', avg_score, 'avg_gpa', avg_gpa,
     'grade_dist', json_build_object('A', a, 'B', b, 'C', c, 'D', d, 'F', f),
     'easiest', (select json_agg(r) from (select puzzle, avg_score from per_puzzle order by avg_score desc, puzzle limit 5) r),
     'hardest', (select json_agg(r) from (select puzzle, avg_score from per_puzzle order by avg_score asc, puzzle limit 5) r)
@@ -79,6 +83,5 @@ $$;
 
 grant execute on function public.get_recall_global_stats(), public.get_bb_recall_global_stats() to anon;
 
--- Indexes last.
 create index if not exists recall_events_mode_idx on recall_events (mode);
 create index if not exists bb_recall_events_mode_idx on bb_recall_events (mode);
