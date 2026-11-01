@@ -108,6 +108,12 @@
   { "difficulty": 1, "category": "HEROES VS. VILLAINS FINAL FOUR", "items": ["JERRI MANTHEY", "PARVATI SHALLOW", "RUSSELL HANTZ", "SANDRA DIAZ-TWINE"] },
   { "difficulty": 2, "category": "TEENAGERS TO BE ON SURVIVOR", "items": ["BRANDON HANTZ", "MICHAEL YERGER", "SAMI LAYADI", "SWATI GOEL"] },
   { "difficulty": 3, "category": "USED SHOT IN THE DARK ON SURVIVOR 50", "items": ["COACH WADE", "DEE VALLADARES", "GENEVIEVE MUSHALUK", "RICK DEVENS"] },
-{ "difficulty": 4, "category": "6+ INDIVIDUAL IMMUNITY WINS ALL TIME", "items": ["BOSTON ROB", "JOE ANGLIM", "SPENCER BLEDSOE", "OZZY LUSTH"] }]}
+{ "difficulty": 4, "category": "6+ INDIVIDUAL IMMUNITY WINS ALL TIME", "items": ["BOSTON ROB", "JOE ANGLIM", "SPENCER BLEDSOE", "OZZY LUSTH"] }]},
+
+{"date": "2026-11-04","title": "Head of the Snake","groups": 
+[{ "difficulty": 1, "category": "NEW ERA WINNERS", "items": ["ERIKA CASUPANAN", "DEE VALLADARES", "KENZIE PETTY", "YAM YAM AROCHO"] },
+{ "difficulty": 2, "category": "NAMED DAVID", "items": ["DAVID JELINSKY", "DAVID KINNE", "DAVID SAMSON", "DAVID WRIGHT"] },
+{ "difficulty": 3, "category": "BEAUTY TRIBE MEMBERS", "items": ["BRICE JOHNSTON", "CALEB REYNOLDS", "JEFRA BLAND", "TAI TRANG"] },
+{ "difficulty": 4, "category": "MOST RECENT RUNNERS UP IN A FINAL 2", "items": ["AMANDA KIMMEL", "DANIELLE DILORENZO", "STEPHEN FISHBACH", "WOO HWANG"] }]}
   ]
 }
