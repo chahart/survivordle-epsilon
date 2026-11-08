@@ -114,6 +114,12 @@
 [{ "difficulty": 1, "category": "NEW ERA WINNERS", "items": ["ERIKA CASUPANAN", "DEE VALLADARES", "KENZIE PETTY", "YAM YAM AROCHO"] },
 { "difficulty": 2, "category": "NAMED DAVID", "items": ["DAVID JELINSKY", "DAVID KINNE", "DAVID SAMSON", "DAVID WRIGHT"] },
 { "difficulty": 3, "category": "BEAUTY TRIBE MEMBERS", "items": ["BRICE JOHNSTON", "CALEB REYNOLDS", "JEFRA BLAND", "TAI TRANG"] },
-{ "difficulty": 4, "category": "MOST RECENT RUNNERS UP IN A FINAL 2", "items": ["AMANDA KIMMEL", "DANIELLE DILORENZO", "STEPHEN FISHBACH", "WOO HWANG"] }]}
+{ "difficulty": 4, "category": "MOST RECENT RUNNERS UP IN A FINAL 2", "items": ["AMANDA KIMMEL", "DANIELLE DILORENZO", "STEPHEN FISHBACH", "WOO HWANG"] }]},
+
+{"date": "2026-11-11","title": "Got Nothin' For Ya","groups": 
+[{ "difficulty": 1, "category": "SURVIVOR: ONE WORLD RETURNEES", "items": ["COLTON CUMBIE", "KAT EDORSSON", "MONICA CULPEPPER", "TROYZAN ROBERTSON"] },
+{ "difficulty": 2, "category": "ONE VOTE AWAY FROM A PERFECT GAME", "items": ["EARL COLE", "MIKE GABLER", "SANDRA DIAZ-TWINE", "TOM WESTMAN"] },
+{ "difficulty": 3, "category": "MOST RECENT FIRST JURORS", "items": ["BRADY BOOKER", "CEDREK MCFADDEN", "DEE VALLADARES", "NATE MOORE"] },
+{ "difficulty": 4, "category": "LAST NAME IS A COLOR", "items": ["CLARENCE BLACK", "NATALIE WHITE", "NICK BROWN", "RAMONA GRAY"] }]}
   ]
 }
