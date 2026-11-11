@@ -173,12 +173,42 @@ export function undo(session) {
 // The list the user sees: their manual reorder if any, else the sorted result.
 // Winners missing from a stale manual order are appended.
 export function currentRanking(session) {
+  if (session.mode === "sort") {
+    const have = new Set(session.manual);
+    return [...session.manual, ...session.order.filter(id => !have.has(id))];
+  }
   const { ranked } = replay(session);
   if (!session.manual) return ranked;
   const have = new Set(ranked);
   const kept = session.manual.filter(id => have.has(id));
   const keptSet = new Set(kept);
   return [...kept, ...ranked.filter(id => !keptSet.has(id))];
+}
+
+// Quick-sort sessions have no matchups: the user just drags the list.
+export const isDone = session => session.mode === "sort" || replay(session).done;
+
+// Switch a 1v1 session to quick sort: placed items keep their order, the rest follow in `ids` order.
+export function toSortSession(session, ids) {
+  const placed = currentRanking(session);
+  const have = new Set(placed);
+  return { ...session, mode: "sort", manual: [...placed, ...ids.filter(id => !have.has(id))] };
+}
+
+// A season's players as rankable items, best finish first. `season` holds the
+// 1-based position in that order (not the season number) because that's the key
+// the shared consensus code uses; placements can tie, positions can't.
+export function playersOf(contestants, season) {
+  const ord = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10 < 4 ? n % 10 : 0]}`;
+  const all = (contestants || []).filter(c => c.season === season);
+  // Numbered seasons (41+) read "Survivor 42"; named ones "Survivor: One World".
+  const label = /^\d+$/.test(all[0]?.seasonName) ? `Survivor ${season}` : `Survivor: ${all[0]?.seasonName}`;
+  return all
+    .sort((a, b) => a.placement - b.placement || a.name.localeCompare(b.name))
+    .map((c, i) => ({
+      id: c.id, season: i + 1, name: c.name, seasonName: c.seasonName,
+      label, tribes: [c.tribe_color], sub: `Finished ${ord(c.placement)}`, card: label,
+    }));
 }
 
 export function moveItem(list, from, to) {

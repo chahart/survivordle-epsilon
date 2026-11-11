@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { Component, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   winnersOf, seasonItems, newSession, syncSession, replay, choose, undo,
-  currentRanking, moveItem, seasonsOf,
+  currentRanking, moveItem, seasonsOf, isDone, toSortSession, playersOf, shuffledIds,
 } from "../shared/rank";
 import {
   loadRankSession, saveRankSession, clearRankSession,
@@ -33,8 +33,27 @@ const KINDS = {
   },
 };
 
+// Shows a crash on the page (instead of a blank screen) and lets the user reset saved state.
+class RankBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error) { console.error("Rank crashed:", error); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="rk-note" style={{ whiteSpace: "pre-wrap" }}>
+        Something went wrong on this page.{" "}{String(this.state.error?.stack || this.state.error).slice(0, 600)}
+      </div>
+    );
+  }
+}
+
 // Hidden page: reached only by typing /rank (gated by RankGate in App.jsx).
-export default function Rank({ contestants }) {
+export default function Rank(props) {
+  return <RankBoundary><RankPage {...props} /></RankBoundary>;
+}
+
+function RankPage({ contestants }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
@@ -50,15 +69,29 @@ export default function Rank({ contestants }) {
   const lists = useMemo(() => ({ winners: winnersOf(contestants), seasons: seasonItems(contestants) }), [contestants]);
 
   const [, kind, step, arg] = pathname.split("/").filter(Boolean);
-  const cfg = KINDS[kind];
+  // "s50" = the individual players of season 50 (ranked by 1v1 or drag-and-drop).
+  const sn = /^s(\d+)$/.exec(kind || "")?.[1];
+  const players = useMemo(() => (sn ? playersOf(contestants, +sn) : []), [sn, contestants]);
+  const cfg = sn
+    ? {
+      title: `${players[0]?.label} Players`,
+      blurb: "Rank this season's cast, one matchup at a time or by dragging them into order.",
+      question: "Who's the better player?",
+      noun: `${players[0]?.label} players`,
+      line: w => w.name,
+      sortable: true,
+    }
+    : KINDS[kind];
 
   return (
     <>
       <style>{RANK_CSS}</style>
       <div className="rk">
-        {cfg && lists[kind].length
-          ? <Board key={kind} kind={kind} cfg={cfg} items={lists[kind]} seasonList={lists.seasons} step={step} arg={arg} navigate={navigate} />
-          : <Chooser navigate={navigate} lists={lists} />}
+        {cfg && (sn ? players : lists[kind]).length
+          ? <Board key={kind} kind={kind} cfg={cfg} items={sn ? players : lists[kind]} seasonList={lists.seasons} step={step} arg={arg} navigate={navigate} />
+          : kind === "players"
+            ? <PlayerSeasons navigate={navigate} seasons={lists.seasons} />
+            : <Chooser navigate={navigate} lists={lists} />}
       </div>
     </>
   );
@@ -87,6 +120,27 @@ function Chooser({ navigate, lists }) {
       </button>
       <div className="rk-label">Consensus top 5</div>
       <Leaderboard kind="seasons" bySeason={maps.seasons} top={5} />
+      <button className="rk-big" onClick={() => navigate("/rank/players")}>
+        <div className="t">Players</div>
+        <div className="d">Rank the cast of any season.</div>
+      </button>
+    </>
+  );
+}
+
+function PlayerSeasons({ navigate, seasons }) {
+  return (
+    <>
+      <button className="rk-link" onClick={() => navigate("/rank")}>← All rankings</button>
+      <h1>Players</h1>
+      <div className="rk-sub">Pick a season to rank its cast.</div>
+      <div className="rk-chips">
+        {seasons.map(x => (
+          <button key={x.season} className="rk-chip" onClick={() => navigate(`/rank/s${x.season}`)}>
+            <b>{x.season}</b> {x.seasonName}
+          </button>
+        ))}
+      </div>
     </>
   );
 }
@@ -98,6 +152,8 @@ function Board({ kind, cfg, items, seasonList, step, arg, navigate }) {
 
   const [session, setSession] = useState(() => loadRankSession(kind));
   const [selected, setSelected] = useState(() => seasonList.map(x => x.season));
+  const [mode, setMode] = useState("1v1");
+  const [placementStart, setPlacementStart] = useState(true);
 
   // Pick up items added by a data update (new seasons) without losing progress.
   const activeSession = useMemo(() => (session ? syncSession(session, ids) : session), [session, ids]);
@@ -110,7 +166,24 @@ function Board({ kind, cfg, items, seasonList, step, arg, navigate }) {
     setSession(next);
   }
 
+  function toSort() {
+    if (!window.confirm("Switch to quick sort? You can't go back to 1v1 for this ranking.")) return;
+    update(toSortSession(session, ids));
+    navigate(`${base}/results`);
+  }
+
   function start() {
+    if (cfg.sortable) {
+      const s = newSession(ids);
+      if (mode === "sort") {
+        update({ ...s, mode: "sort", manual: placementStart ? ids : shuffledIds(ids, s.seed) });
+        navigate(`${base}/results`);
+      } else {
+        update(s);
+        navigate(`${base}/play`);
+      }
+      return;
+    }
     const picked = new Set(selected);
     update(newSession(ids, items.filter(w => picked.has(w.season)).map(w => w.id)));
     navigate(`/rank/${kind}/play`);
@@ -129,10 +202,36 @@ function Board({ kind, cfg, items, seasonList, step, arg, navigate }) {
       <>
         <button className="rk-link" onClick={() => navigate(base)}>← Back</button>
         <h1>{cfg.title}</h1>
-        <div className="rk-sub">{cfg.setup}</div>
-        <SeasonPicker seasons={seasonList} selected={selected} onChange={setSelected} />
+        {cfg.sortable ? (
+          <>
+            <div className="rk-row">
+              <div className="rk-seg">
+                <button className={mode === "1v1" ? "on" : ""} onClick={() => setMode("1v1")}>1v1</button>
+                <button className={mode === "sort" ? "on" : ""} onClick={() => setMode("sort")}>Quick sort</button>
+              </div>
+            </div>
+            <div className="rk-sub">
+              {mode === "1v1"
+                ? "Pick the better player, head to head. You can switch to quick sort later."
+                : "Drag everyone into your order."}
+            </div>
+            {mode === "sort" && (
+              <div className="rk-row">
+                <div className="rk-seg">
+                  <button className={placementStart ? "on" : ""} onClick={() => setPlacementStart(true)}>Start in placement order</button>
+                  <button className={placementStart ? "" : "on"} onClick={() => setPlacementStart(false)}>Start random</button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="rk-sub">{cfg.setup}</div>
+            <SeasonPicker seasons={seasonList} selected={selected} onChange={setSelected} />
+          </>
+        )}
         <div className="rk-row">
-          <button className="rk-btn primary" disabled={selected.length < 2} onClick={start}>Start ranking</button>
+          <button className="rk-btn primary" disabled={!cfg.sortable && selected.length < 2} onClick={start}>Start ranking</button>
         </div>
       </>
     );
@@ -143,8 +242,8 @@ function Board({ kind, cfg, items, seasonList, step, arg, navigate }) {
   if (step === "play" || step === "results") {
     if (!activeSession) return <Redirect to={base} navigate={navigate} />;
     return step === "play"
-      ? <Play cfg={cfg} session={activeSession} byId={byId} update={update} navigate={navigate} base={base} />
-      : <Results kind={kind} cfg={cfg} session={activeSession} byId={byId} update={update} navigate={navigate} base={base} />;
+      ? <Play cfg={cfg} session={activeSession} byId={byId} update={update} navigate={navigate} base={base} toSort={cfg.sortable ? toSort : null} />
+      : <Results kind={kind} cfg={cfg} session={activeSession} byId={byId} update={update} navigate={navigate} base={base} toSort={cfg.sortable ? toSort : null} />;
   }
   return <Home cfg={cfg} kind={kind} session={activeSession} bySeason={bySeason} startOver={startOver} navigate={navigate} base={base} />;
 }
@@ -155,7 +254,7 @@ function Redirect({ to, navigate }) {
 }
 
 function Home({ cfg, kind, session, bySeason, startOver, navigate, base }) {
-  const done = session ? replay(session).done : false;
+  const done = session ? isDone(session) : false;
   return (
     <>
       <button className="rk-link" onClick={() => navigate("/rank")}>← All rankings</button>
@@ -172,24 +271,27 @@ function Home({ cfg, kind, session, bySeason, startOver, navigate, base }) {
         {done && <button className="rk-btn primary" onClick={() => navigate(`${base}/results`)}>View my ranking</button>}
         {session && <button className="rk-btn" onClick={startOver}>Start over</button>}
       </div>
-      <div className="rk-row">
-        <button className="rk-btn" onClick={() => navigate(`${base}/blind/5`)}>Blind ranking · 5</button>
-        <button className="rk-btn" onClick={() => navigate(`${base}/blind/10`)}>Blind ranking · 10</button>
-      </div>
+      {!cfg.sortable && (
+        <div className="rk-row">
+          <button className="rk-btn" onClick={() => navigate(`${base}/blind/5`)}>Blind ranking · 5</button>
+          <button className="rk-btn" onClick={() => navigate(`${base}/blind/10`)}>Blind ranking · 10</button>
+        </div>
+      )}
       <div className="rk-h2">Consensus Ranking</div>
       <Leaderboard kind={kind} bySeason={bySeason} />
     </>
   );
 }
 
-function Play({ cfg, session, byId, update, navigate, base }) {
+function Play({ cfg, session, byId, update, navigate, base, toSort }) {
   const state = useMemo(() => replay(session), [session]);
+  const done = isDone(session);
 
   useEffect(() => {
-    if (state.done) navigate(`${base}/results`, { replace: true });
-  }, [state.done, navigate, base]);
+    if (done) navigate(`${base}/results`, { replace: true });
+  }, [done, navigate, base]);
 
-  if (state.done) return null;
+  if (done) return null;
   const cur = byId.get(state.cur);
   const other = byId.get(state.other);
   if (!cur || !other) return null;
@@ -206,43 +308,68 @@ function Play({ cfg, session, byId, update, navigate, base }) {
       <div className="rk-row" style={{ marginTop: 18 }}>
         <button className="rk-btn" disabled={!session.choices.length} onClick={() => update(undo(session))}>↶ Undo</button>
         <button className="rk-btn" onClick={() => navigate(`${base}/results`)}>Stop &amp; see my board</button>
+        {toSort && <button className="rk-btn" onClick={toSort}>Switch to quick sort</button>}
       </div>
     </>
   );
 }
 
-function Results({ kind, cfg, session, byId, update, navigate, base }) {
-  const state = useMemo(() => replay(session), [session]);
+function Results({ kind, cfg, session, byId, update, navigate, base, toSort }) {
+  const done = isDone(session);
   const ranking = useMemo(() => currentRanking(session), [session]);
+  const [sentSig, setSentSig] = useState(() => getSubmittedSig(kind));
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const mySig = seasonsOf(ranking, byId).join(",");
+
+  async function submitNow() {
+    setBusy(true);
+    setFailed(false);
+    if (await submitRankRemote(getRankAnonId(), kind, seasonsOf(ranking, byId))) {
+      setSubmittedSig(kind, mySig);
+      setSentSig(mySig);
+    } else setFailed(true);
+    setBusy(false);
+  }
 
   // Send the ranking to the consensus once it's big enough. Debounced so
   // reordering doesn't fire a request per click; skipped if unchanged.
   useEffect(() => {
     const seasons = seasonsOf(ranking, byId);
     if (seasons.length < MIN_SUBMIT) return;
+    if (session.mode === "sort") return; // quick sort is only sent when the user presses the button
     const sig = seasons.join(",");
     if (sig === getSubmittedSig(kind)) return;
     const t = setTimeout(async () => {
       if (await submitRankRemote(getRankAnonId(), kind, seasons)) setSubmittedSig(kind, sig);
     }, 1500);
     return () => clearTimeout(t);
-  }, [ranking, byId, kind]);
+  }, [ranking, byId, kind, session.mode]);
 
   return (
     <>
       <h1>My Ranking</h1>
-      {!state.done && (
+      {!done && (
         <>
           <div className="rk-sub">{ranking.length} placed so far. You can keep going any time.</div>
           <div className="rk-row">
             <button className="rk-btn primary" onClick={() => navigate(`${base}/play`)}>Keep ranking</button>
+            {toSort && <button className="rk-btn" onClick={toSort}>Switch to quick sort</button>}
           </div>
         </>
       )}
-      {state.done && <div className="rk-sub">Use the arrows to fine-tune your order.</div>}
+      {done && <div className="rk-sub">{cfg.sortable ? "Drag the handles (or use the arrows) to set your order." : "Use the arrows to fine-tune your order."}</div>}
       {ranking.length === 0
         ? <div className="rk-note">Nothing ranked yet.</div>
-        : <RankList ids={ranking} byId={byId} onMove={state.done ? (from, to) => update({ ...session, manual: moveItem(ranking, from, to) }) : null} />}
+        : <RankList ids={ranking} byId={byId} drag={cfg.sortable} onMove={done ? (from, to) => update({ ...session, manual: moveItem(ranking, from, to) }) : null} />}
+      {session.mode === "sort" && (
+        <div className="rk-row">
+          <button className="rk-btn primary" disabled={busy || sentSig === mySig} onClick={submitNow}>
+            {sentSig === mySig ? "Submitted to consensus ✓" : busy ? "Submitting…" : "Submit to consensus"}
+          </button>
+          {failed && <div className="rk-note">Couldn't submit. Try again.</div>}
+        </div>
+      )}
       {ranking.length >= 2 && <ShareButtons ranking={ranking} byId={byId} cfg={cfg} kind={kind} />}
       <div className="rk-row">
         <button className="rk-btn" onClick={() => navigate(base)}>Consensus ranking</button>

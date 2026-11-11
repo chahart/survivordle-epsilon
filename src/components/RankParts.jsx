@@ -79,6 +79,11 @@ export const RANK_CSS = `
   .rk-slot:hover:not(:disabled) { border-color: var(--rk-accent); color: var(--text); }
   .rk-slot:disabled { cursor: default; opacity: .5; }
   .rk-tent { outline: 2px solid var(--rk-accent); outline-offset: -2px; }
+  .rk-grip { cursor: grab; touch-action: none; user-select: none; color: var(--text3); font-size: 20px; padding: 0 4px; }
+  .rk-drag { background: var(--bg3); outline: 2px solid var(--rk-accent); outline-offset: -2px; }
+  .rk-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .rk-seg button { padding: 9px 18px; border: none; background: var(--bg3); color: var(--text); cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 600; }
+  .rk-seg button.on { background: var(--rk-accent); color: #1a1a1a; }
   .rk-note { color: var(--text3); font-size: 13px; text-align: center; margin: 10px 0; }
   @media (max-width: 480px) {
     .rk-vs { grid-template-columns: 1fr; }
@@ -104,7 +109,7 @@ export function CardBody({ w }) {
       {w.winner === undefined ? (
         <>
           <div className="nm">{w.name}</div>
-          <div className="se">Season {w.season} · {w.seasonName}</div>
+          <div className="se">{w.card || `Season ${w.season} · ${w.seasonName}`}</div>
         </>
       ) : (
         <>
@@ -138,15 +143,36 @@ export function Matchup({ cur, other, flip, question, onChoose }) {
   );
 }
 
-export function RankList({ ids, byId, onMove, scores }) {
+export function RankList({ ids, byId, onMove, scores, drag }) {
+  const dragging = useRef(null);
+  const [active, setActive] = useState(null);
+  // Pointer-based so it works on touch too; reorders live as the handle crosses rows.
+  const onDrag = e => {
+    if (dragging.current == null) return;
+    const rows = [...e.currentTarget.closest("ol").children];
+    let t = rows.findIndex(li => e.clientY < li.getBoundingClientRect().bottom);
+    if (t < 0) t = rows.length - 1;
+    if (t !== dragging.current) { onMove(dragging.current, t); dragging.current = t; setActive(t); }
+    if (e.clientY < 70) window.scrollBy(0, -12);
+    else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 12);
+  };
   return (
     <ol className="rk-list">
       {ids.map((id, i) => {
         const w = byId.get(id);
         if (!w) return null;
         return (
-          <li key={id} className="rk-item">
+          <li key={id} className={`rk-item${active === i ? " rk-drag" : ""}`}>
             <Bar w={w} />
+            {drag && onMove && (
+              <span
+                className="rk-grip" aria-hidden="true"
+                onPointerDown={e => { dragging.current = i; setActive(i); e.currentTarget.setPointerCapture(e.pointerId); }}
+                onPointerMove={onDrag}
+                onPointerUp={() => { dragging.current = null; setActive(null); }}
+                onPointerCancel={() => { dragging.current = null; setActive(null); }}
+              >⠿</span>
+            )}
             <span className="pos">{i + 1}</span>
             <WinnerLine w={w} />
             {scores && <span className="sc">{scores[i]}</span>}
