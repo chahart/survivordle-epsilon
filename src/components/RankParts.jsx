@@ -85,10 +85,104 @@ export const RANK_CSS = `
   .rk-seg button { padding: 9px 18px; border: none; background: var(--bg3); color: var(--text); cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 600; }
   .rk-seg button.on { background: var(--rk-accent); color: #1a1a1a; }
   .rk-note { color: var(--text3); font-size: 13px; text-align: center; margin: 10px 0; }
+
+  /* ---- Motion and feel. Everything interactive is under 300ms; the most-used
+     actions (picking a matchup, placing a name) get the least animation. ---- */
+  .rk { --rk-out: cubic-bezier(.2, .8, .2, 1); --rk-spring: cubic-bezier(.34, 1.56, .64, 1); --rk-deep: #b3541a; }
+  /* Depth: buttons and cards sit on a ledge and press down into it (squash on press). */
+  .rk-btn { box-shadow: 0 2px 0 var(--border2); transition: transform .12s var(--rk-out), box-shadow .12s var(--rk-out), background .12s, border-color .12s, filter .12s; }
+  .rk-btn.primary { box-shadow: 0 2px 0 var(--rk-deep); }
+  .rk-btn:active:not(:disabled) { transform: translateY(2px) scale(.97, .94); box-shadow: 0 0 0 transparent; }
+  .rk-btn.big { padding: 14px 28px; font-size: 17px; min-width: 220px; }
+  .rk-btn.small { min-height: 32px; min-width: 32px; }
+  .rk-pop { animation: rk-pop .26s var(--rk-spring); }
+  .rk-big, .rk-pick { box-shadow: 0 3px 0 var(--border2); transition: transform .14s var(--rk-out), box-shadow .14s var(--rk-out), background .12s, border-color .12s, opacity .14s; }
+  .rk-big:hover, .rk-pick:not(.rk-static):hover { transform: translateY(-2px); box-shadow: 0 5px 0 var(--border2); }
+  .rk-big:active, .rk-pick:not(.rk-static):active { transform: translateY(2px) scale(.985, .96); box-shadow: 0 1px 0 var(--border2); }
+  /* Hit areas reach past what you can see. */
+  .rk-link, .rk-grip { position: relative; }
+  .rk-link::after, .rk-grip::after { content: ''; position: absolute; inset: -9px; }
+  /* Front page and board home: a few big chunks instead of a long scroll. */
+  .rk-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 14px 0; }
+  .rk-cards .rk-big { margin: 0; height: 100%; }
+  .rk-cards .rk-big .t { font-size: 28px; }
+  /* Matchup: the pair arrives together, the pick pops and the other one steps back. */
+  .rk-vs .rk-pick { animation: rk-rise .18s var(--rk-out) backwards; }
+  .rk-vs .rk-pick.won { animation: rk-win .2s var(--rk-spring) forwards; border-color: var(--rk-accent); background: var(--bg3); }
+  .rk-vs .rk-pick.lost { opacity: .3; transform: scale(.97); }
+  .rk-prog { height: 6px; border-radius: 3px; background: var(--bg3); overflow: hidden; margin: 6px 0 4px; }
+  .rk-prog i { display: block; height: 100%; border-radius: 3px; background: var(--rk-accent); transition: width .28s var(--rk-out); }
+  /* Lists rise in once, top first; a dragged row lifts off the page. */
+  .rk-list.enter .rk-item { animation: rk-rise .28s var(--rk-out) backwards; animation-delay: calc(min(var(--i), 14) * 22ms); }
+  .rk-item { transition: background .12s; }
+  .rk-drag { position: relative; z-index: 1; box-shadow: 0 6px 18px var(--shadow); }
+  .rk-skel { height: 40px; background: linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 50%, var(--bg2) 75%); background-size: 200% 100%; animation: rk-shimmer 1.1s linear infinite; }
+  .rk-deal { animation: rk-deal .24s var(--rk-out); }
+
+  /* ---- Tier lists ---- */
+  .rk-tiers { display: grid; gap: 6px; user-select: none; -webkit-user-select: none; margin: 12px 0; }
+  .rk-tier { display: flex; min-height: 58px; border-radius: 10px; overflow: hidden; background: var(--bg2); border: 1px solid var(--border2);
+    transition: border-color .12s, background .12s, transform .12s var(--rk-out); }
+  .rk-tier .lab { flex: 0 0 68px; display: flex; align-items: center; justify-content: center; border: none; padding: 4px;
+    font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 1px; line-height: 1; cursor: inherit; overflow-wrap: anywhere; text-align: center; }
+  .rk-tier .its, .rk-tray { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; align-content: flex-start; }
+  .rk-tray { min-height: 58px; border-radius: 10px; border: 1px dashed var(--border); user-select: none; -webkit-user-select: none; }
+  .rk-tray .rk-note { margin: auto; }
+  .rk-tiers.aiming .rk-tier { cursor: pointer; border-color: var(--border); }
+  .rk-tiers.aiming .rk-tier:hover, .rk-tier.over, .rk-tray.over { border-color: var(--rk-accent); background: var(--bg3); transform: scale(1.01); }
+  .rk-tiers.aiming .lab { animation: rk-nudge .3s var(--rk-out); }
+  .rk-tchip { position: relative; overflow: hidden; padding: 7px 10px 7px 14px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 0 var(--border2);
+    transition: transform .12s var(--rk-out), box-shadow .12s, border-color .12s, opacity .12s; }
+  .rk-tchip::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c, #888); }
+  .rk-tchip small { color: var(--text3); font-weight: 500; font-size: 11px; margin-left: 6px; }
+  .rk-tchip:hover { border-color: var(--rk-accent); }
+  .rk-tchip:active { transform: scale(.96, .93); }
+  .rk-tchip.sel { border-color: var(--rk-accent); box-shadow: 0 0 0 2px var(--rk-accent); transform: translateY(-2px) scale(1.04); }
+  .rk-tchip.land { animation: rk-land .26s var(--rk-spring); }
+  .rk-tchip.lifted { opacity: .3; }
+  .rk-ghost { position: fixed; z-index: 50; pointer-events: none; transform: translate(-50%, -50%) rotate(-4deg) scale(1.08); box-shadow: 0 10px 24px var(--shadow); border-color: var(--rk-accent); }
+  .rk-tbtns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
+  .rk-tbtns button { min-width: 52px; min-height: 52px; padding: 6px 12px; border: none; border-radius: 10px; cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; box-shadow: 0 3px 0 rgba(0, 0, 0, .35);
+    transition: transform .12s var(--rk-out), box-shadow .12s; }
+  .rk-tbtns button:hover { transform: translateY(-2px); box-shadow: 0 5px 0 rgba(0, 0, 0, .35); }
+  .rk-tbtns button:active { transform: translateY(3px) scale(.96, .92); box-shadow: none; }
+  .rk-dock { position: fixed; left: 50%; bottom: 12px; z-index: 40; transform: translateX(-50%); width: min(600px, calc(100vw - 16px));
+    padding: 10px 10px 2px; border-radius: 14px; border: 1px solid var(--rk-accent); background: var(--bg2); box-shadow: 0 10px 30px var(--shadow);
+    animation: rk-dock .2s var(--rk-out); }
+  .rk-dock .who { text-align: center; font-weight: 700; font-size: 15px; }
+  .rk-dock .rk-tbtns { margin: 8px 0; }
+  .rk-tedit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin: 8px 0; border-radius: 10px;
+    background: var(--bg2); border: 1px solid var(--border2); border-left: 8px solid var(--c); }
+  .rk-tedit > input { width: 110px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--text);
+    font-family: inherit; font-size: 16px; font-weight: 700; }
+  .rk-tedit > input:focus { outline: none; border-color: var(--rk-accent); }
+  .rk-tedit .sw { display: flex; gap: 6px; align-items: center; flex: 1; flex-wrap: wrap; }
+  .rk-tedit .sw button { position: relative; width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; transition: transform .12s var(--rk-spring); }
+  .rk-tedit .sw button::after { content: ''; position: absolute; inset: -5px; }
+  .rk-tedit .sw button:hover { transform: scale(1.15); }
+  .rk-tedit .sw button.on { border-color: var(--text); transform: scale(1.15); }
+  .rk-tedit .sw input { width: 30px; height: 28px; padding: 0; border: none; background: none; cursor: pointer; }
+  .rk-tedit .mv { display: flex; gap: 4px; }
+
+  @keyframes rk-rise { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes rk-win { 40% { transform: scale(1.06, 1.03); } to { transform: scale(1.03); } }
+  @keyframes rk-pop { 0% { transform: scale(.92, .88); } 60% { transform: scale(1.06, 1.08); } }
+  @keyframes rk-land { 0% { transform: translate(-8px, -12px) rotate(-5deg) scale(1.12); } 55% { transform: translate(1px, 2px) rotate(1deg) scale(.95, .9); } }
+  @keyframes rk-deal { from { opacity: 0; transform: translate(28px, -10px) rotate(4deg); } }
+  @keyframes rk-nudge { 40% { transform: scale(1.08); } }
+  @keyframes rk-dock { from { opacity: 0; transform: translate(-50%, 16px); } }
+  @keyframes rk-shimmer { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .rk *, .rk *::before, .rk *::after { animation: none !important; transition: none !important; }
+  }
   @media (max-width: 480px) {
     .rk-vs { grid-template-columns: 1fr; }
     .rk-pick { min-height: 90px; padding: 16px 14px 16px 22px; }
     .rk-item .se { display: none; }
+    .rk-tier .lab { flex-basis: 54px; font-size: 26px; }
+    .rk-btn.big { width: 100%; }
   }
 `;
 
@@ -122,9 +216,29 @@ export function CardBody({ w }) {
   );
 }
 
+// Remount it per pair (key) so the pick state resets and the new pair animates in.
 export function Matchup({ cur, other, flip, question, onChoose }) {
+  const [picked, setPicked] = useState(null);
+  // The pick pops and the other card steps back for a beat before the next pair arrives.
+  const pick = code => {
+    if (picked) return;
+    setPicked(code);
+    setTimeout(() => onChoose(code), 150);
+  };
+  const pickRef = useRef(pick);
+  useEffect(() => { pickRef.current = pick; });
+  // Left / right arrow keys pick the card on that side.
+  useEffect(() => {
+    const onKey = e => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      pickRef.current((e.key === "ArrowLeft") === flip ? "w" : "l");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [flip]);
   const side = (w, code) => (
-    <button className="rk-pick" onClick={() => onChoose(code)}>
+    <button className={`rk-pick${picked ? (picked === code ? " won" : " lost") : ""}`} onClick={() => pick(code)}>
       <CardBody w={w} />
     </button>
   );
@@ -137,7 +251,7 @@ export function Matchup({ cur, other, flip, question, onChoose }) {
         {flip ? side(other, "l") : side(cur, "w")}
       </div>
       <div className="rk-row" style={{ marginTop: 14 }}>
-        <button className="rk-btn small" onClick={() => onChoose("?")}>I don't know</button>
+        <button className="rk-btn small" disabled={!!picked} onClick={() => onChoose("?")}>I don't know</button>
       </div>
     </>
   );
@@ -146,6 +260,12 @@ export function Matchup({ cur, other, flip, question, onChoose }) {
 export function RankList({ ids, byId, onMove, scores, drag }) {
   const dragging = useRef(null);
   const [active, setActive] = useState(null);
+  // Rows rise in once. The class comes off afterwards so reordering doesn't replay it.
+  const [enter, setEnter] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setEnter(false), 700);
+    return () => clearTimeout(t);
+  }, []);
   // Pointer-based so it works on touch too; reorders live as the handle crosses rows.
   const onDrag = e => {
     if (dragging.current == null) return;
@@ -157,12 +277,12 @@ export function RankList({ ids, byId, onMove, scores, drag }) {
     else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 12);
   };
   return (
-    <ol className="rk-list">
+    <ol className={`rk-list${enter ? " enter" : ""}`}>
       {ids.map((id, i) => {
         const w = byId.get(id);
         if (!w) return null;
         return (
-          <li key={id} className={`rk-item${active === i ? " rk-drag" : ""}`}>
+          <li key={id} className={`rk-item${active === i ? " rk-drag" : ""}`} style={{ "--i": i }}>
             <Bar w={w} />
             {drag && onMove && (
               <span
@@ -199,7 +319,13 @@ export function Leaderboard({ kind, bySeason, top }) {
     return () => { live = false; };
   }, [kind]);
 
-  if (data === undefined) return <div className="rk-note">Loading the consensus…</div>;
+  if (data === undefined) {
+    return (
+      <ol className="rk-list" aria-label="Loading the consensus">
+        {Array.from({ length: top || 10 }, (_, i) => <li key={i} className="rk-item rk-skel" />)}
+      </ol>
+    );
+  }
   if (data === null) return <div className="rk-note">Leaderboard unavailable right now.</div>;
   if (!data.rows.length) return <div className="rk-note">No rankings yet. Be the first!</div>;
 
@@ -212,9 +338,7 @@ export function Leaderboard({ kind, bySeason, top }) {
   return (
     <>
       <RankList ids={ids} byId={lookup} scores={scores} />
-      <div className="rk-note">
-        {top ? "Based on" : "Consensus score out of 100 · based on"} {data.total.toLocaleString()} ranking{data.total === 1 ? "" : "s"}
-      </div>
+      {!top && <div className="rk-note">Consensus score out of 100</div>}
       {!top && rows.length > 10 && (
         <div className="rk-row">
           <button className="rk-btn small" onClick={() => setAll(a => !a)}>{all ? "Show top 10" : `Show all ${rows.length}`}</button>

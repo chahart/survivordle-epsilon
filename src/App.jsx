@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import CSS, { TAB_CSS, SUBTAB_CSS, PRIVACY_CSS, STATS_PAGE_CSS, ABOUT_CSS, FOOTER_CSS, RECALL_CSS, SANDWICH_CSS, CONNECTIONS_CSS } from "./shared/styles";
+import CSS, { POLISH_CSS, TAB_CSS, SUBTAB_CSS, PRIVACY_CSS, STATS_PAGE_CSS, ABOUT_CSS, FOOTER_CSS, RECALL_CSS, SANDWICH_CSS, CONNECTIONS_CSS } from "./shared/styles";
 import NavBar from "./components/NavBar";
 import BBNavBar from "./components/BBNavBar";
 import Footer from "./components/Footer";
@@ -195,7 +195,7 @@ export default function App() {
   if (loading) return (
     <>
       <style>{CSS}</style>
-      <style>{TAB_CSS}{SUBTAB_CSS}{PRIVACY_CSS}{STATS_PAGE_CSS}{ABOUT_CSS}{FOOTER_CSS}{RECALL_CSS}{SANDWICH_CSS}{CONNECTIONS_CSS}</style>
+      <style>{TAB_CSS}{SUBTAB_CSS}{PRIVACY_CSS}{STATS_PAGE_CSS}{ABOUT_CSS}{FOOTER_CSS}{RECALL_CSS}{SANDWICH_CSS}{CONNECTIONS_CSS}{POLISH_CSS}</style>
       <div className="page"><div className="loading">🔥 Loading the tribe…</div></div>
     </>
   );
@@ -203,9 +203,9 @@ export default function App() {
   return (
     <>
       <style>{CSS}</style>
-      <style>{TAB_CSS}{SUBTAB_CSS}{PRIVACY_CSS}{STATS_PAGE_CSS}{ABOUT_CSS}{FOOTER_CSS}{RECALL_CSS}{SANDWICH_CSS}{CONNECTIONS_CSS}</style>
+      <style>{TAB_CSS}{SUBTAB_CSS}{PRIVACY_CSS}{STATS_PAGE_CSS}{ABOUT_CSS}{FOOTER_CSS}{RECALL_CSS}{SANDWICH_CSS}{CONNECTIONS_CSS}{POLISH_CSS}</style>
       <style>{lightMode ? "body{background:#f5f0e8}" : "body{background:#0a0a0a}"}</style>
-      <div className={lightMode ? "light" : ""}>
+      <div className={`${lightMode ? "light" : ""}${isBB ? " bb-theme" : ""}`}>
 
         <Ramp PUB_ID={PUB_ID} WEBSITE_ID={WEBSITE_ID} />
 

@@ -11,6 +11,7 @@ import {
 import { submitRankRemote } from "../shared/rankApi";
 import { RANK_CSS, Matchup, RankList, Leaderboard, SeasonPicker, ShareButtons } from "../components/RankParts";
 import RankBlind from "../components/RankBlind";
+import RankTiers from "../components/RankTiers";
 
 const MIN_SUBMIT = 10; // must match rank_submissions.sql
 
@@ -103,27 +104,31 @@ function Chooser({ navigate, lists }) {
     winners: new Map(lists.winners.map(w => [w.season, { ...w, name: `Winner of ${w.seasonName}`, sub: `Season ${w.season}` }])),
     seasons: new Map(lists.seasons.map(s => [s.season, s])),
   }), [lists]);
+  const [peek, setPeek] = useState("winners");
+  const card = (to, t, d) => (
+    <button className="rk-big" onClick={() => navigate(to)}>
+      <div className="t">{t}</div>
+      <div className="d">{d}</div>
+    </button>
+  );
   return (
     <>
       <h1>Rank</h1>
       <div className="rk-sub">What do you want to rank?</div>
+      <div className="rk-cards">
+        {card("/rank/winners", "Winners", "Who's the best Sole Survivor?")}
+        {card("/rank/seasons", "Seasons", "Which seasons are the greatest?")}
+        {card("/rank/players", "Players", "Rank the cast of any season.")}
+      </div>
       <div className="rk-note"><b>⚠ Heavy spoiler warning</b></div>
-      <button className="rk-big" onClick={() => navigate("/rank/winners")}>
-        <div className="t">Winners</div>
-        <div className="d">Who's the best Sole Survivor?</div>
-      </button>
-      <div className="rk-label">Consensus top 5</div>
-      <Leaderboard kind="winners" bySeason={maps.winners} top={5} />
-      <button className="rk-big" onClick={() => navigate("/rank/seasons")}>
-        <div className="t">Seasons</div>
-        <div className="d">Which seasons are the greatest?</div>
-      </button>
-      <div className="rk-label">Consensus top 5</div>
-      <Leaderboard kind="seasons" bySeason={maps.seasons} top={5} />
-      <button className="rk-big" onClick={() => navigate("/rank/players")}>
-        <div className="t">Players</div>
-        <div className="d">Rank the cast of any season.</div>
-      </button>
+      <div className="rk-h2">Consensus top 5</div>
+      <div className="rk-row">
+        <div className="rk-seg">
+          <button className={peek === "winners" ? "on" : ""} onClick={() => setPeek("winners")}>Winners</button>
+          <button className={peek === "seasons" ? "on" : ""} onClick={() => setPeek("seasons")}>Seasons</button>
+        </div>
+      </div>
+      <Leaderboard key={peek} kind={peek} bySeason={maps[peek]} top={5} />
     </>
   );
 }
@@ -236,6 +241,9 @@ function Board({ kind, cfg, items, seasonList, step, arg, navigate }) {
       </>
     );
   }
+  if (step === "tiers") {
+    return <RankTiers kind={kind} cfg={cfg} items={items} byId={byId} navigate={navigate} base={base} />;
+  }
   if (step === "blind") {
     return <RankBlind kind={kind} cfg={cfg} items={items} byId={byId} n={arg === "10" ? 10 : 5} navigate={navigate} base={base} />;
   }
@@ -261,22 +269,35 @@ function Home({ cfg, kind, session, bySeason, startOver, navigate, base }) {
       <h1>{cfg.title}</h1>
       <div className="rk-sub">{cfg.blurb}</div>
       <div className="rk-row">
-        {!session && <button className="rk-btn primary" onClick={() => navigate(`${base}/setup`)}>Start ranking</button>}
-        {session && !done && (
-          <>
-            <button className="rk-btn primary" onClick={() => navigate(`${base}/play`)}>Resume</button>
-            <button className="rk-btn" onClick={() => navigate(`${base}/results`)}>My board so far</button>
-          </>
-        )}
-        {done && <button className="rk-btn primary" onClick={() => navigate(`${base}/results`)}>View my ranking</button>}
-        {session && <button className="rk-btn" onClick={startOver}>Start over</button>}
+        {!session && <button className="rk-btn primary big" onClick={() => navigate(`${base}/setup`)}>Start ranking</button>}
+        {session && !done && <button className="rk-btn primary big" onClick={() => navigate(`${base}/play`)}>Resume ranking</button>}
+        {done && <button className="rk-btn primary big" onClick={() => navigate(`${base}/results`)}>View my ranking</button>}
       </div>
-      {!cfg.sortable && (
+      {session && (
         <div className="rk-row">
-          <button className="rk-btn" onClick={() => navigate(`${base}/blind/5`)}>Blind ranking · 5</button>
-          <button className="rk-btn" onClick={() => navigate(`${base}/blind/10`)}>Blind ranking · 10</button>
+          {!done && <button className="rk-btn small" onClick={() => navigate(`${base}/results`)}>My board so far</button>}
+          <button className="rk-btn small" onClick={startOver}>Start over</button>
         </div>
       )}
+      <div className="rk-label">More ways to play</div>
+      <div className="rk-cards">
+        <button className="rk-big" onClick={() => navigate(`${base}/tiers`)}>
+          <div className="t">Tier list</div>
+          <div className="d">Sort them into S to F tiers.</div>
+        </button>
+        {!cfg.sortable && (
+          <>
+            <button className="rk-big" onClick={() => navigate(`${base}/blind/5`)}>
+              <div className="t">Blind · 5</div>
+              <div className="d">Rank 5 without knowing who's next.</div>
+            </button>
+            <button className="rk-big" onClick={() => navigate(`${base}/blind/10`)}>
+              <div className="t">Blind · 10</div>
+              <div className="d">Same, but 10 and harder.</div>
+            </button>
+          </>
+        )}
+      </div>
       <div className="rk-h2">Consensus Ranking</div>
       <Leaderboard kind={kind} bySeason={bySeason} />
     </>
@@ -296,9 +317,15 @@ function Play({ cfg, session, byId, update, navigate, base, toSort }) {
   const other = byId.get(state.other);
   if (!cur || !other) return null;
 
+  const total = session.order.length;
   return (
     <>
+      <div className="rk-prog" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={state.ranked.length}>
+        <i style={{ width: `${(state.ranked.length / total) * 100}%` }} />
+      </div>
+      <div className="rk-note">{state.ranked.length} of {total} placed</div>
       <Matchup
+        key={`${cur.id}|${other.id}|${session.choices.length}`}
         cur={cur}
         other={other}
         flip={state.flip}
@@ -364,7 +391,7 @@ function Results({ kind, cfg, session, byId, update, navigate, base, toSort }) {
         : <RankList ids={ranking} byId={byId} drag={cfg.sortable} onMove={done ? (from, to) => update({ ...session, manual: moveItem(ranking, from, to) }) : null} />}
       {session.mode === "sort" && (
         <div className="rk-row">
-          <button className="rk-btn primary" disabled={busy || sentSig === mySig} onClick={submitNow}>
+          <button key={sentSig === mySig} className={`rk-btn primary${sentSig === mySig ? " rk-pop" : ""}`} disabled={busy || sentSig === mySig} onClick={submitNow}>
             {sentSig === mySig ? "Submitted to consensus ✓" : busy ? "Submitting…" : "Submit to consensus"}
           </button>
           {failed && <div className="rk-note">Couldn't submit. Try again.</div>}

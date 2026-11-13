@@ -1545,3 +1545,77 @@ export const CONNECTIONS_CSS = `
 `;
 
 export { TAB_CSS, SUBTAB_CSS, PRIVACY_CSS, STATS_PAGE_CSS, ABOUT_CSS, FOOTER_CSS };
+
+// Site-wide polish layer (loaded last, after every page's CSS). Mobile-first feel:
+// instant press feedback, no sticky hover on touch, bigger hit areas, BB blue on BB.
+// Board visuals are untouched; only how buttons and rows respond.
+export const POLISH_CSS = `
+  :root { --brand: #e8742a; --press-ease: cubic-bezier(.2, .8, .2, 1); }
+  .bb-theme { --brand: #5aaedd; }
+
+  /* Every tap answers immediately (no 300ms double-tap wait, no grey flash). */
+  .share-btn, .play-recall-btn, .archive-play-btn, .giveup-btn, .cx-action-btn, .nav-btn, .nav-more-btn,
+  .ul-tab, .modal-close, .recall-info-btn, .archive-item, .cx-tile, .ac-item, .nav-tab, .nav-more-item {
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .share-btn, .play-recall-btn, .archive-play-btn, .giveup-btn, .cx-action-btn, .nav-btn, .archive-item {
+    transition: transform .12s var(--press-ease), box-shadow .12s var(--press-ease),
+      background-color .15s, border-color .15s, color .15s, filter .15s, opacity .15s;
+  }
+  /* Squash on press. Filled buttons sit on a small ledge and press down into it. */
+  .share-btn:active, .giveup-btn:active, .cx-action-btn:active:not(:disabled), .nav-btn:active { transform: scale(.95); }
+  .share-btn, .archive-play-btn, .play-recall-btn, .cx-action-btn.cx-submit:not(:disabled) { box-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
+  .archive-play-btn:active, .play-recall-btn:active, .cx-action-btn.cx-submit:active:not(:disabled) {
+    transform: translateY(2px) scale(.97, .94); box-shadow: 0 0 0 transparent;
+  }
+  .archive-item:active { transform: scale(.985); }
+  .ac-item:active { background: var(--ac-hover); }
+  /* Connections: a tile dips when pressed, then the selection spring takes over. */
+  .cx-tile:active:not(.cx-solved) { transform: scale(.95); }
+
+  /* Hit areas bigger than they look (tiny buttons: give up, theme / help, close, info). */
+  .giveup-btn, .nav-btn, .recall-info-btn { position: relative; }
+  .giveup-btn::after, .nav-btn::after, .recall-info-btn::after, .modal-close::after { content: ''; position: absolute; inset: -8px; }
+  .modal-close::after { inset: -12px; }
+
+  /* Keyboard focus is visible; mouse / touch focus isn't. */
+  .page button:focus-visible, .page a:focus-visible, .page [tabindex]:focus-visible,
+  .nav button:focus-visible, .nav a:focus-visible, .bb-nav button:focus-visible, .bb-nav a:focus-visible {
+    outline: 2px solid var(--brand); outline-offset: 2px;
+  }
+
+  /* Touch screens: hover styles stick after a tap, so undo the ones that would. */
+  @media (hover: none) {
+    .share-btn:hover { border-color: var(--border); color: var(--text2); }
+    .archive-item:hover { border-color: var(--border); }
+    .nav-btn:hover { border-color: var(--how-border); color: var(--how-color); }
+    .giveup-btn:hover { border-color: var(--giveup-border); color: var(--giveup-color); opacity: .85; }
+    .cx-action-btn:hover:not(:disabled):not(.cx-submit):not(.cx-give-up) { border-color: var(--border); }
+    .cx-tile:hover:not(.cx-solved):not(.cx-selected) { transform: none; border-color: rgba(232, 116, 42, .35); }
+    .cx-tile:active:not(.cx-solved) { transform: scale(.95); }
+  }
+
+  @media (max-width: 500px) {
+    /* iOS zooms the page into inputs under 16px. */
+    .search-input { font-size: 16px; }
+    /* Thumb-sized targets on the busiest buttons. */
+    .archive-play-btn { padding: 8px 18px; }
+    .share-btn { padding: 10px 20px; }
+    .giveup-btn { padding: 6px 12px; }
+  }
+
+  /* Big Brother: brand accents in blue on every BB page (semantic colors untouched). */
+  .bb-theme .ul-tab.active, .bb-theme .mode-banner-title, .bb-theme .archive-item-num,
+  .bb-theme .stats-grid-num, .bb-theme .status-name, .bb-theme .modal-title,
+  .bb-theme .modal-section-title, .bb-theme .modal-link { color: #5aaedd; }
+  .bb-theme .ul-tab.active { border-bottom-color: #5aaedd; }
+  .bb-theme .archive-play-btn, .bb-theme .play-recall-btn { background: linear-gradient(135deg, #1a6fbf, #5aaedd); }
+  .bb-theme .search-input:focus { border-color: #5aaedd; }
+  @media (hover: hover) {
+    .bb-theme .share-btn:hover, .bb-theme .archive-item:hover { border-color: #5aaedd; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .share-btn, .play-recall-btn, .archive-play-btn, .giveup-btn, .cx-action-btn, .nav-btn, .archive-item, .cx-tile { transition: none; }
+  }
+`;

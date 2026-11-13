@@ -14,7 +14,7 @@ export default function RankGate({ children }) {
 
   function submit(e) {
     e.preventDefault();
-    if (value === RANK_PASSWORD) {
+    if (value.trim().toUpperCase() === RANK_PASSWORD) { // forgiving about case and stray spaces
       setRankUnlocked();
       setUnlocked(true);
     } else {
