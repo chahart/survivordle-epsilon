@@ -120,6 +120,12 @@
 [{ "difficulty": 1, "category": "SURVIVOR: ONE WORLD RETURNEES", "items": ["COLTON CUMBIE", "KAT EDORSSON", "MONICA CULPEPPER", "TROYZAN ROBERTSON"] },
 { "difficulty": 2, "category": "ONE VOTE AWAY FROM A PERFECT GAME", "items": ["EARL COLE", "MIKE GABLER", "SANDRA DIAZ-TWINE", "TOM WESTMAN"] },
 { "difficulty": 3, "category": "MOST RECENT FIRST JURORS", "items": ["BRADY BOOKER", "CEDREK MCFADDEN", "DEE VALLADARES", "NATE MOORE"] },
-{ "difficulty": 4, "category": "LAST NAME IS A COLOR", "items": ["CLARENCE BLACK", "NATALIE WHITE", "NICK BROWN", "RAMONA GRAY"] }]}
+{ "difficulty": 4, "category": "LAST NAME IS A COLOR", "items": ["CLARENCE BLACK", "NATALIE WHITE", "NICK BROWN", "RAMONA GRAY"] }]},
+
+{"date": "2026-11-18","title": "Banana Etiquette","groups": 
+[{ "difficulty": 1, "category": "ELIMINATED VIA DUOS TWIST", "items": ["CHRISSY HOFBECK", "COACH WADE", "DANNY KILBY", "KRISTIN FLICKINGER"] },
+{ "difficulty": 2, "category": "YOUNGEST WINNERS", "items": ["FABIO BIRZA", "JENNA MORASCA", "SOPHIE CLARKE", "TODD HERZOG"] },
+{ "difficulty": 3, "category": "EXACTLY ONE JURY VOTE", "items": ["CASSIDY CLARK", "MIKE TURNER", "SAGE AHRENS-NICHOLS", "WOO HWANG"] },
+{ "difficulty": 4, "category": "FARMERS", "items": ["CHICKEN MORRIS", "LEWIS KELLY", "RALPH KISER", "TOM BUCHANAN"] }]}
   ]
 }
