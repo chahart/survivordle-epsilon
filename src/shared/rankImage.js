@@ -2,9 +2,9 @@
 // looks like the on-page list: one row per winner with a tribe-color bar.
 
 import { subOf, barColors } from "./rank";
-import { inkOn } from "./rankTiers";
+import { inkOn, isSTier, S_LOGO, FLAME_NUDGE, S_DROP } from "./rankTiers";
 
-const ACCENT = "#e8742a"; // Survivordle orange; change for BB
+import { show, shareUrl } from "./rankShow";
 const W = 1080;
 const PAD = 56;
 const ROW_H = 64;
@@ -40,7 +40,7 @@ export async function renderRankImage(ids, byId, { title = "My Ranking", subtitl
   ctx.fillRect(0, 0, W, H);
 
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = ACCENT;
+  ctx.fillStyle = show().accent;
   ctx.textAlign = "center";
   ctx.font = "88px 'Bebas Neue', Impact, sans-serif";
   ctx.fillText(title.toUpperCase(), W / 2, 112);
@@ -66,7 +66,7 @@ export async function renderRankImage(ids, byId, { title = "My Ranking", subtitl
     ctx.textBaseline = "middle";
 
     ctx.textAlign = "right";
-    ctx.fillStyle = ACCENT;
+    ctx.fillStyle = show().accent;
     ctx.font = "700 26px 'DM Sans', Arial, sans-serif";
     ctx.fillText(String(i + 1), x0 + 70, mid);
 
@@ -84,9 +84,9 @@ export async function renderRankImage(ids, byId, { title = "My Ranking", subtitl
 
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
-  ctx.fillStyle = ACCENT;
+  ctx.fillStyle = show().accent;
   ctx.font = "600 28px 'DM Sans', Arial, sans-serif";
-  ctx.fillText("survivordle.com/rank", W / 2, H - 46);
+  ctx.fillText(shareUrl(), W / 2, H - 46);
 
   return new Promise(resolve => canvas.toBlob(resolve, "image/png"));
 }
@@ -147,6 +147,11 @@ export async function renderTierImage(tiers, byId, { title = "My Tier List", sub
     return { t, pills, h: 2 * ROW_PAD + (line + 1) * PILL_H + line * GAP };
   });
 
+  // Flame-S mark for the S tier; falls back to the plain letter if it doesn't load.
+  const logo = rows.some(r => isSTier(r.t))
+    ? await new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = S_LOGO; })
+    : null;
+
   const H = HEAD_H + rows.reduce((s, r) => s + r.h + 6, 0) + FOOT_H;
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -156,7 +161,7 @@ export async function renderTierImage(tiers, byId, { title = "My Tier List", sub
   ctx.fillRect(0, 0, W, H);
 
   ctx.textAlign = "center";
-  ctx.fillStyle = ACCENT;
+  ctx.fillStyle = show().accent;
   ctx.font = "88px 'Bebas Neue', Impact, sans-serif";
   ctx.fillText(title.toUpperCase(), W / 2, 112);
   ctx.fillStyle = c.dim;
@@ -170,10 +175,22 @@ export async function renderTierImage(tiers, byId, { title = "My Tier List", sub
     ctx.fillRect(PAD, y, W - 2 * PAD, h);
     ctx.fillStyle = t.color;
     ctx.fillRect(PAD, y, LAB, h);
-    ctx.fillStyle = inkOn(t.color);
+    let ty = y + h / 2 + 3;
+    if (logo && isSTier(t)) {
+      const s = Math.min(h * 1.4, LAB * 1.2); // the flame is ~64% of the image's height
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(PAD, y, LAB, h);
+      ctx.clip();
+      ctx.drawImage(logo, PAD + (LAB - s) / 2 + s * FLAME_NUDGE.x, y + (h - s) / 2 + s * FLAME_NUDGE.y, s, s);
+      ctx.restore();
+      ty += s * S_DROP; // into the flame's round body
+    }
+    // Same letter for every tier; on the flame it takes the tier's color.
+    ctx.fillStyle = logo && isSTier(t) ? t.color : inkOn(t.color);
     ctx.textAlign = "center";
     ctx.font = "56px 'Bebas Neue', Impact, sans-serif";
-    ctx.fillText(fit(ctx, (t.name || "?").toUpperCase(), LAB - 16), PAD + LAB / 2, y + h / 2 + 3);
+    ctx.fillText(fit(ctx, (t.name || "?").toUpperCase(), LAB - 16), PAD + LAB / 2, ty);
 
     ctx.textAlign = "left";
     ctx.font = PILL_FONT;
@@ -192,9 +209,9 @@ export async function renderTierImage(tiers, byId, { title = "My Tier List", sub
 
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
-  ctx.fillStyle = ACCENT;
+  ctx.fillStyle = show().accent;
   ctx.font = "600 28px 'DM Sans', Arial, sans-serif";
-  ctx.fillText("survivordle.com/rank", W / 2, H - 46);
+  ctx.fillText(shareUrl(), W / 2, H - 46);
 
   return new Promise(resolve => canvas.toBlob(resolve, "image/png"));
 }

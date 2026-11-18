@@ -253,6 +253,7 @@ export default function App() {
             <Route path="/connections/stats" element={<Navigate to="/stats?tab=connections" replace />} />
             <Route path="/connections/faq"           element={<ConnectionsFAQ />} />
             <Route path="/rank/*" element={<RankGate><Rank contestants={contestants} /></RankGate>} />
+            <Route path="/bb/rank/*" element={<RankGate><Rank show="bb" /></RankGate>} />
             <Route path="/bb"           element={<BB colorblind={colorblind} />} />
             <Route path="/bb/archive"   element={<BB colorblind={colorblind} />} />
             <Route path="/bb/unlimited" element={<BB colorblind={colorblind} />} />

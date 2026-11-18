@@ -3,36 +3,53 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   winnersOf, seasonItems, newSession, syncSession, replay, choose, undo,
   currentRanking, moveItem, seasonsOf, isDone, toSortSession, playersOf, shuffledIds,
+  dailyMatchup, etToday, streakOf, templateItems, returneesOf, bbLists, bbCast,
 } from "../shared/rank";
+import { SHOWS, show, setShow, rp } from "../shared/rankShow";
+import TIER_TEMPLATES from "../shared/tierTemplates.json";
 import {
   loadRankSession, saveRankSession, clearRankSession,
-  getRankAnonId, getSubmittedSig, setSubmittedSig,
+  getRankAnonId, getSubmittedSig, setSubmittedSig, loadDailyVotes,
 } from "../shared/rankStorage";
 import { submitRankRemote } from "../shared/rankApi";
-import { RANK_CSS, Matchup, RankList, Leaderboard, SeasonPicker, ShareButtons } from "../components/RankParts";
+import { RANK_CSS, Matchup, RankList, Leaderboard, SeasonPicker, ShareButtons, TribeCompare, KeepPlaying } from "../components/RankParts";
 import RankBlind from "../components/RankBlind";
 import RankTiers from "../components/RankTiers";
+import RankToday, { TodayPeek } from "../components/RankToday";
+import { TierStrip, TierGallery } from "../components/RankTierHub";
+
+// "Players" on Survivor, "Houseguests" on Big Brother.
+const playersWord = w => (show().id === "bb" && w === "Players" ? "Houseguests" : w);
 
 const MIN_SUBMIT = 10; // must match rank_submissions.sql
 
-const KINDS = {
+// Board settings, worded for the current show.
+const kinds = () => ({
   winners: {
     title: "Rank the Winners",
     blurb: "Pick the better winner, head to head, until you've built your own board.",
     question: "Who's the better winner?",
-    noun: "Survivor winners",
+    noun: `${show().name} winners`,
     setup: "Which seasons have you watched? You'll only be asked about their winners.",
-    line: w => `${w.name} (S${w.season})`,
+    line: w => `${w.name} (${show().short}${w.season})`,
   },
   seasons: {
     title: "Rank the Seasons",
     blurb: "Pick the better season, head to head, until you've built your own board.",
     question: "Which season is better?",
-    noun: "Survivor seasons",
+    noun: `${show().name} seasons`,
     setup: "Which seasons have you watched? You'll only be asked about those.",
-    line: w => `${w.name} (S${w.season})`,
+    line: w => (show().id === "bb" ? w.name : `${w.name} (S${w.season})`),
   },
-};
+  returnees: {
+    title: "Best Returnees to Never Win",
+    blurb: "Everyone who came back without ever winning. Head to head, or drag them into order.",
+    question: "Who's the better player?",
+    noun: "returnees who never won",
+    line: w => w.name,
+    sortable: true,
+  },
+});
 
 // Shows a crash on the page (instead of a blank screen) and lets the user reset saved state.
 class RankBoundary extends Component {
@@ -41,17 +58,32 @@ class RankBoundary extends Component {
   componentDidCatch(error) { console.error("Rank crashed:", error); }
   render() {
     if (!this.state.error) return this.props.children;
+    const kind = window.location.pathname.slice(rp().length).split("/")[1];
     return (
-      <div className="rk-note" style={{ whiteSpace: "pre-wrap" }}>
-        Something went wrong on this page.{" "}{String(this.state.error?.stack || this.state.error).slice(0, 600)}
+      <div className="rk-note">
+        <p>Something went wrong on this page.</p>
+        {kind && (
+          <button className="rk-btn" onClick={() => { clearRankSession(kind); window.location.assign(rp(`/${kind}`)); }}>
+            Reset this ranking
+          </button>
+        )}
       </div>
     );
   }
 }
 
-// Hidden page: reached only by typing /rank (gated by RankGate in App.jsx).
-export default function Rank(props) {
-  return <RankBoundary><RankPage {...props} /></RankBoundary>;
+// Hidden page: reached only by typing /rank or /bb/rank (gated by RankGate in App.jsx).
+// showId "bb" runs Rank on Big Brother data, which it loads itself (like the other BB modes).
+export default function Rank({ contestants, show: showId = "sv" }) {
+  setShow(showId); // before any child renders; see rankShow.js
+  const [bb, setBb] = useState([]);
+  useEffect(() => {
+    if (showId !== "bb") return;
+    let live = true;
+    fetch("/bb_contestants.json").then(r => r.json()).then(d => { if (live) setBb(d); }).catch(() => {});
+    return () => { live = false; };
+  }, [showId]);
+  return <RankBoundary><RankPage key={showId} contestants={showId === "bb" ? bb : contestants} /></RankBoundary>;
 }
 
 function RankPage({ contestants }) {
@@ -67,18 +99,24 @@ function RankPage({ contestants }) {
     return () => meta.remove();
   }, []);
 
-  const lists = useMemo(() => ({ winners: winnersOf(contestants), seasons: seasonItems(contestants) }), [contestants]);
+  const bb = show().id === "bb";
+  const lists = useMemo(
+    () => (bb ? bbLists(contestants) : { winners: winnersOf(contestants), seasons: seasonItems(contestants), returnees: returneesOf(contestants) }),
+    [bb, contestants],
+  );
+  const templates = bb ? [] : TIER_TEMPLATES; // curated tier lists are Survivor-only for now
+  const KINDS = kinds();
 
-  const [, kind, step, arg] = pathname.split("/").filter(Boolean);
+  const [kind, step, arg] = pathname.slice(rp().length).split("/").filter(Boolean);
   // "s50" = the individual players of season 50 (ranked by 1v1 or drag-and-drop).
   const sn = /^s(\d+)$/.exec(kind || "")?.[1];
-  const players = useMemo(() => (sn ? playersOf(contestants, +sn) : []), [sn, contestants]);
+  const players = useMemo(() => (sn ? (bb ? bbCast : playersOf)(contestants, +sn) : []), [bb, sn, contestants]);
   const cfg = sn
     ? {
-      title: `${players[0]?.label} Players`,
+      title: `${players[0]?.label} ${playersWord("Players")}`,
       blurb: "Rank this season's cast, one matchup at a time or by dragging them into order.",
       question: "Who's the better player?",
-      noun: `${players[0]?.label} players`,
+      noun: `${players[0]?.label} ${playersWord("Players").toLowerCase()}`,
       line: w => w.name,
       sortable: true,
     }
@@ -87,40 +125,75 @@ function RankPage({ contestants }) {
   return (
     <>
       <style>{RANK_CSS}</style>
-      <div className="rk">
+      <div className="rk" style={{ "--rk-accent": show().accent, "--rk-deep": show().deep }}>
         {cfg && (sn ? players : lists[kind]).length
           ? <Board key={kind} kind={kind} cfg={cfg} items={sn ? players : lists[kind]} seasonList={lists.seasons} step={step} arg={arg} navigate={navigate} />
           : kind === "players"
             ? <PlayerSeasons navigate={navigate} seasons={lists.seasons} />
-            : <Chooser navigate={navigate} lists={lists} />}
+            : kind === "tiers" && lists.seasons.length
+              ? <TierGallery lists={lists} contestants={contestants} templates={templates} navigate={navigate} />
+            : kind === "t" && lists.seasons.length
+              ? <TemplateTiers key={step} slug={step} templates={templates} contestants={contestants} seasons={lists.seasons} navigate={navigate} />
+              : kind === "today" && lists.seasons.length
+                ? <RankToday lists={lists} navigate={navigate} />
+                : <Chooser navigate={navigate} lists={lists} contestants={contestants} templates={templates} />}
       </div>
     </>
   );
 }
 
-function Chooser({ navigate, lists }) {
+// A curated tier list from tierTemplates.json, at /rank/t/<slug>.
+function TemplateTiers({ slug, templates, contestants, seasons, navigate }) {
+  const tpl = templates.find(t => t.slug === slug);
+  const items = useMemo(() => (tpl ? templateItems(tpl, contestants, seasons) : []), [tpl, contestants, seasons]);
+  const byId = useMemo(() => new Map(items.map(w => [w.id, w])), [items]);
+  if (!items.length) return <Redirect to={rp()} navigate={navigate} />;
+  return <RankTiers kind={`t-${slug}`} cfg={{ noun: tpl.noun }} items={items} byId={byId} navigate={navigate} base={rp("/tiers")} title={tpl.title} blurb={tpl.blurb} />;
+}
+
+function Chooser({ navigate, lists, contestants, templates }) {
   // Winners are masked ("Winner of …") so the front page doesn't name anyone.
-  const maps = useMemo(() => ({
-    winners: new Map(lists.winners.map(w => [w.season, { ...w, name: `Winner of ${w.seasonName}`, sub: `Season ${w.season}` }])),
-    seasons: new Map(lists.seasons.map(s => [s.season, s])),
-  }), [lists]);
+  const maps = useMemo(() => {
+    const seasonName = new Map(lists.seasons.map(s => [s.season, s.name]));
+    return {
+      winners: new Map(lists.winners.map(w => [w.season, { ...w, name: `Winner of ${seasonName.get(w.season)}`, sub: `Season ${w.season}` }])),
+      seasons: new Map(lists.seasons.map(s => [s.season, s])),
+    };
+  }, [lists]);
   const [peek, setPeek] = useState("winners");
+  // Status at a glance: voted or not, and the streak at stake.
+  const todayLine = useMemo(() => {
+    const m = dailyMatchup(etToday(), lists);
+    if (!m) return "One vote a day. See how everyone split.";
+    const votes = loadDailyVotes();
+    const streak = streakOf(votes, m.num);
+    if (votes[m.num] != null) return `✓ Voted today${streak > 1 ? ` · 🔥 ${streak}-day streak` : ""}. See how everyone split.`;
+    return streak ? `Vote to keep your 🔥 ${streak}-day streak alive.` : "One vote a day. See how everyone split.";
+  }, [lists]);
   const card = (to, t, d) => (
-    <button className="rk-big" onClick={() => navigate(to)}>
+    <button key={to} className="rk-big" onClick={() => navigate(to)}>
       <div className="t">{t}</div>
       <div className="d">{d}</div>
     </button>
   );
   return (
     <>
-      <h1>Rank</h1>
-      <div className="rk-sub">What do you want to rank?</div>
-      <div className="rk-cards">
-        {card("/rank/winners", "Winners", "Who's the best Sole Survivor?")}
-        {card("/rank/seasons", "Seasons", "Which seasons are the greatest?")}
-        {card("/rank/players", "Players", "Rank the cast of any season.")}
+      {/* Show switch: each show is its own Rank, at its own address. */}
+      <div className="rk-row">
+        <div className="rk-seg" role="group" aria-label="Show">
+          {Object.values(SHOWS).map(s => (
+            <button key={s.id} className={s.id === show().id ? "on" : ""} aria-pressed={s.id === show().id} onClick={() => navigate(s.base)}>{s.name}</button>
+          ))}
+        </div>
       </div>
-      <div className="rk-note"><b>⚠ Heavy spoiler warning</b></div>
+      <h1>Rank</h1>
+      <div className="rk-sub">The community's {show().name} rankings. Heavy spoilers ahead.</div>
+      {card(rp("/today"), "Today's Matchup", todayLine)}
+      <div className="rk-hrow">
+        <div className="rk-h2">Tier lists</div>
+        <button className="rk-link" onClick={() => navigate(rp("/tiers"))}>See all</button>
+      </div>
+      <TierStrip lists={lists} contestants={contestants} templates={templates} navigate={navigate} />
       <div className="rk-h2">Consensus top 5</div>
       <div className="rk-row">
         <div className="rk-seg">
@@ -128,7 +201,17 @@ function Chooser({ navigate, lists }) {
           <button className={peek === "seasons" ? "on" : ""} onClick={() => setPeek("seasons")}>Seasons</button>
         </div>
       </div>
-      <Leaderboard key={peek} kind={peek} bySeason={maps[peek]} top={5} />
+      <Leaderboard key={peek} kind={peek} bySeason={maps[peek]} top={5} empty={<TodayPeek navigate={navigate} />} />
+      <div className="rk-row">
+        <button className="rk-link" onClick={() => navigate(rp(`/${peek}`))}>See the full {peek} ranking</button>
+      </div>
+      <div className="rk-h2">Rank your own</div>
+      <div className="rk-cards">
+        {card(rp("/winners"), "Winners", `Who's the best ${show().winnerWord}?`)}
+        {card(rp("/seasons"), "Seasons", "Which seasons are the greatest?")}
+        {card(rp("/players"), playersWord("Players"), "Rank the cast of any season.")}
+        {card(rp("/returnees"), "Returnees", "The best to never win.")}
+      </div>
     </>
   );
 }
@@ -136,12 +219,12 @@ function Chooser({ navigate, lists }) {
 function PlayerSeasons({ navigate, seasons }) {
   return (
     <>
-      <button className="rk-link" onClick={() => navigate("/rank")}>← All rankings</button>
-      <h1>Players</h1>
+      <button className="rk-backbtn" onClick={() => navigate(rp())}>All rankings</button>
+      <h1>{playersWord("Players")}</h1>
       <div className="rk-sub">Pick a season to rank its cast.</div>
       <div className="rk-chips">
-        {seasons.map(x => (
-          <button key={x.season} className="rk-chip" onClick={() => navigate(`/rank/s${x.season}`)}>
+        {[...seasons].reverse().map(x => (
+          <button key={x.season} className="rk-chip" onClick={() => navigate(rp(`/s${x.season}`))}>
             <b>{x.season}</b> {x.seasonName}
           </button>
         ))}
@@ -191,21 +274,21 @@ function Board({ kind, cfg, items, seasonList, step, arg, navigate }) {
     }
     const picked = new Set(selected);
     update(newSession(ids, items.filter(w => picked.has(w.season)).map(w => w.id)));
-    navigate(`/rank/${kind}/play`);
+    navigate(rp(`/${kind}/play`));
   }
 
   function startOver() {
     if (!window.confirm("Start over? Your current ranking will be erased.")) return;
     clearRankSession(kind);
     setSession(null);
-    navigate(`/rank/${kind}/setup`);
+    navigate(rp(`/${kind}/setup`));
   }
 
-  const base = `/rank/${kind}`;
+  const base = rp(`/${kind}`);
   if (step === "setup") {
     return (
       <>
-        <button className="rk-link" onClick={() => navigate(base)}>← Back</button>
+        <button className="rk-backbtn" onClick={() => navigate(base)}>Back</button>
         <h1>{cfg.title}</h1>
         {cfg.sortable ? (
           <>
@@ -223,7 +306,7 @@ function Board({ kind, cfg, items, seasonList, step, arg, navigate }) {
             {mode === "sort" && (
               <div className="rk-row">
                 <div className="rk-seg">
-                  <button className={placementStart ? "on" : ""} onClick={() => setPlacementStart(true)}>Start in placement order</button>
+                  <button className={placementStart ? "on" : ""} onClick={() => setPlacementStart(true)}>{/^s\d/.test(kind) ? "Start in placement order" : "Start A–Z"}</button>
                   <button className={placementStart ? "" : "on"} onClick={() => setPlacementStart(false)}>Start random</button>
                 </div>
               </div>
@@ -251,9 +334,11 @@ function Board({ kind, cfg, items, seasonList, step, arg, navigate }) {
     if (!activeSession) return <Redirect to={base} navigate={navigate} />;
     return step === "play"
       ? <Play cfg={cfg} session={activeSession} byId={byId} update={update} navigate={navigate} base={base} toSort={cfg.sortable ? toSort : null} />
-      : <Results kind={kind} cfg={cfg} session={activeSession} byId={byId} update={update} navigate={navigate} base={base} toSort={cfg.sortable ? toSort : null} />;
+      : <Results kind={kind} cfg={cfg} session={activeSession} byId={byId} bySeason={bySeason} update={update} navigate={navigate} base={base} toSort={cfg.sortable ? toSort : null} />;
   }
-  return <Home cfg={cfg} kind={kind} session={activeSession} bySeason={bySeason} startOver={startOver} navigate={navigate} base={base} />;
+  // Items added by a data update since the last visit (a new season's winner).
+  const added = activeSession && session ? activeSession.order.length - session.order.length : 0;
+  return <Home cfg={cfg} kind={kind} session={activeSession} added={added} bySeason={bySeason} startOver={startOver} navigate={navigate} base={base} />;
 }
 
 function Redirect({ to, navigate }) {
@@ -261,13 +346,14 @@ function Redirect({ to, navigate }) {
   return null;
 }
 
-function Home({ cfg, kind, session, bySeason, startOver, navigate, base }) {
+function Home({ cfg, kind, session, added, bySeason, startOver, navigate, base }) {
   const done = session ? isDone(session) : false;
   return (
     <>
-      <button className="rk-link" onClick={() => navigate("/rank")}>← All rankings</button>
+      <button className="rk-backbtn" onClick={() => navigate(rp())}>All rankings</button>
       <h1>{cfg.title}</h1>
       <div className="rk-sub">{cfg.blurb}</div>
+      {added > 0 && <div className="rk-note"><b>{added} new since your last visit.</b> Resume to place {added === 1 ? "it" : "them"} in your ranking.</div>}
       <div className="rk-row">
         {!session && <button className="rk-btn primary big" onClick={() => navigate(`${base}/setup`)}>Start ranking</button>}
         {session && !done && <button className="rk-btn primary big" onClick={() => navigate(`${base}/play`)}>Resume ranking</button>}
@@ -323,7 +409,11 @@ function Play({ cfg, session, byId, update, navigate, base, toSort }) {
       <div className="rk-prog" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={state.ranked.length}>
         <i style={{ width: `${(state.ranked.length / total) * 100}%` }} />
       </div>
-      <div className="rk-note">{state.ranked.length} of {total} placed</div>
+      <div className="rk-note">
+        {state.ranked.length < MIN_SUBMIT
+          ? <>{state.ranked.length} of {total} placed · <b>{MIN_SUBMIT - state.ranked.length} more</b> until you can see how you compare to the {show().crowd}</>
+          : <>{state.ranked.length} of {total} placed · <button className="rk-link" onClick={() => navigate(`${base}/results`)}>Compare with the {show().crowd} now →</button></>}
+      </div>
       <Matchup
         key={`${cur.id}|${other.id}|${session.choices.length}`}
         cur={cur}
@@ -341,7 +431,7 @@ function Play({ cfg, session, byId, update, navigate, base, toSort }) {
   );
 }
 
-function Results({ kind, cfg, session, byId, update, navigate, base, toSort }) {
+function Results({ kind, cfg, session, byId, bySeason, update, navigate, base, toSort }) {
   const done = isDone(session);
   const ranking = useMemo(() => currentRanking(session), [session]);
   const [sentSig, setSentSig] = useState(() => getSubmittedSig(kind));
@@ -385,6 +475,8 @@ function Results({ kind, cfg, session, byId, update, navigate, base, toSort }) {
           </div>
         </>
       )}
+      {/* Peak-end: the payoff comes before the long list, not under it. */}
+      {ranking.length >= MIN_SUBMIT && <TribeCompare kind={kind} seasons={seasonsOf(ranking, byId)} bySeason={bySeason} cfg={cfg} />}
       {done && <div className="rk-sub">{cfg.sortable ? "Drag the handles (or use the arrows) to set your order." : "Use the arrows to fine-tune your order."}</div>}
       {ranking.length === 0
         ? <div className="rk-note">Nothing ranked yet.</div>
@@ -401,6 +493,7 @@ function Results({ kind, cfg, session, byId, update, navigate, base, toSort }) {
       <div className="rk-row">
         <button className="rk-btn" onClick={() => navigate(base)}>Consensus ranking</button>
       </div>
+      <KeepPlaying navigate={navigate} skip={[base]} />
     </>
   );
 }

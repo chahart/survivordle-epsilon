@@ -63,7 +63,7 @@ function Game({ kind, cfg, items, byId, n, navigate, base, onAgain }) {
 
   return (
     <>
-      <button className="rk-link" onClick={() => navigate(base)}>← Quit</button>
+      <button className="rk-backbtn" onClick={() => navigate(base)}>Quit</button>
       <h1>Blind Ranking</h1>
       <div className="rk-sub">Tap a spot (1 is the best), then Continue. Once you continue, it's locked.</div>
       <FlipCard key={cur.id} w={cur} onRevealed={setRevealed} />

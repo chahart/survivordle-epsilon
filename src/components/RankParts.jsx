@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { fetchRankLeaderboard } from "../shared/rankApi";
-import { subOf, barColors } from "../shared/rank";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchRankLeaderboard, fetchRankRaw } from "../shared/rankApi";
+import { subOf, barColors, compareToConsensus, consensusRows, withoutRanking } from "../shared/rank";
+import { getSubmittedSig } from "../shared/rankStorage";
+import { show, rp, shareUrl, cap } from "../shared/rankShow";
 import { renderRankImage, shareOrDownloadImage } from "../shared/rankImage";
 
 // Text-only on purpose (no contestant photos). Tribe colors are just an accent.
@@ -85,6 +87,38 @@ export const RANK_CSS = `
   .rk-seg button { padding: 9px 18px; border: none; background: var(--bg3); color: var(--text); cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 600; }
   .rk-seg button.on { background: var(--rk-accent); color: #1a1a1a; }
   .rk-note { color: var(--text3); font-size: 13px; text-align: center; margin: 10px 0; }
+  /* ---- Tier list menus: one uniform tile, any number of lists ---- */
+  .rk-hrow { display: flex; align-items: baseline; justify-content: space-between; margin: 26px 0 8px; }
+  .rk-hrow .rk-h2 { margin: 0; }
+  .rk-strip { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 2px 12px; scrollbar-width: thin; }
+  .rk-tile { flex: 0 0 148px; height: 108px; scroll-snap-align: start; display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
+    text-align: left; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--border); border-top: 4px solid var(--rk-accent);
+    background: var(--bg2); color: var(--text); cursor: pointer; font-family: inherit; box-shadow: 0 3px 0 var(--border2);
+    transition: transform .14s var(--rk-out), box-shadow .14s var(--rk-out), background .12s; }
+  .rk-tile:hover { background: var(--bg3); transform: translateY(-2px); box-shadow: 0 5px 0 var(--border2); }
+  .rk-tile:active { transform: translateY(2px) scale(.98, .96); box-shadow: 0 1px 0 var(--border2); }
+  .rk-tile .k { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rk-tile .t { flex: 1; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; line-height: 1.05; color: var(--rk-accent);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .rk-tile .p { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; }
+  .rk-tile .bar { flex: 1; height: 4px; border-radius: 2px; background: var(--bg3); overflow: hidden; }
+  .rk-tile .bar i { display: block; height: 100%; background: var(--rk-accent); }
+  .rk-tile.more { border-style: dashed; border-top: 4px dashed var(--rk-accent); background: none; justify-content: center; }
+  .rk-tile.more .t { flex: 0; }
+  .rk-tilegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .rk-tilegrid .rk-tile { flex: none; }
+  .rk-chip small { color: var(--rk-accent); font-weight: 700; }
+  .rk-tribe { padding: 16px; border-radius: 12px; border: 1px solid var(--rk-accent); background: var(--bg2); text-align: center; }
+  .rk-tribe .pct { font-family: 'Bebas Neue', sans-serif; font-size: 56px; line-height: 1; color: var(--rk-accent); }
+  .rk-tribe .rk-note { margin: 4px 0 10px; }
+  .rk-tribe .take { font-size: 15px; margin: 6px 0; }
+  .rk-split { display: grid; gap: 8px; margin: 14px 0; }
+  .rk-split .side { position: relative; overflow: hidden; display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px;
+    border-radius: 10px; border: 1px solid var(--border); background: var(--bg2); font-weight: 600; }
+  .rk-split .side.mine { border-color: var(--rk-accent); }
+  .rk-split .side i { position: absolute; inset: 0 auto 0 0; background: var(--rk-accent); opacity: .22; transition: width .5s var(--rk-out, ease); }
+  .rk-split .side span { position: relative; }
 
   /* ---- Motion and feel. Everything interactive is under 300ms; the most-used
      actions (picking a matchup, placing a name) get the least animation. ---- */
@@ -101,6 +135,17 @@ export const RANK_CSS = `
   .rk-big:active, .rk-pick:not(.rk-static):active { transform: translateY(2px) scale(.985, .96); box-shadow: 0 1px 0 var(--border2); }
   /* Hit areas reach past what you can see. */
   .rk-link, .rk-grip { position: relative; }
+  /* Back: a real button, same spot (top left) on every Rank screen. 44px tall for
+     thumbs (Fitts), a pressable ledge like every other button here (consistency),
+     and the arrow in the accent so it's found at a glance. */
+  .rk-backbtn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px 0 12px; margin: 2px 0 8px;
+    border-radius: 10px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); cursor: pointer;
+    font-family: inherit; font-size: 14px; font-weight: 600; box-shadow: 0 2px 0 var(--border2);
+    transition: transform .12s var(--rk-out), box-shadow .12s var(--rk-out), background .12s, border-color .12s; }
+  .rk-backbtn::before { content: '←'; color: var(--rk-accent); font-size: 18px; font-weight: 700; line-height: 1; }
+  .rk-backbtn:hover { background: var(--bg3); border-color: var(--rk-accent); }
+  .rk-backbtn:active { transform: translateY(2px) scale(.97, .94); box-shadow: 0 0 0 transparent; }
+  .rk-backbtn:focus-visible { outline: 2px solid var(--rk-accent); outline-offset: 2px; }
   .rk-link::after, .rk-grip::after { content: ''; position: absolute; inset: -9px; }
   /* Front page and board home: a few big chunks instead of a long scroll. */
   .rk-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 14px 0; }
@@ -143,6 +188,7 @@ export const RANK_CSS = `
   .rk-tchip.lifted { opacity: .3; }
   .rk-ghost { position: fixed; z-index: 50; pointer-events: none; transform: translate(-50%, -50%) rotate(-4deg) scale(1.08); box-shadow: 0 10px 24px var(--shadow); border-color: var(--rk-accent); }
   .rk-tbtns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
+  .rk-tbtns { --logo: 58px; }
   .rk-tbtns button { min-width: 52px; min-height: 52px; padding: 6px 12px; border: none; border-radius: 10px; cursor: pointer;
     font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; box-shadow: 0 3px 0 rgba(0, 0, 0, .35);
     transition: transform .12s var(--rk-out), box-shadow .12s; }
@@ -181,7 +227,7 @@ export const RANK_CSS = `
     .rk-vs { grid-template-columns: 1fr; }
     .rk-pick { min-height: 90px; padding: 16px 14px 16px 22px; }
     .rk-item .se { display: none; }
-    .rk-tier .lab { flex-basis: 54px; font-size: 26px; }
+    .rk-tier .lab { flex-basis: 54px; font-size: 26px; --logo: 54px; }
     .rk-btn.big { width: 100%; }
   }
 `;
@@ -217,7 +263,7 @@ export function CardBody({ w }) {
 }
 
 // Remount it per pair (key) so the pick state resets and the new pair animates in.
-export function Matchup({ cur, other, flip, question, onChoose }) {
+export function Matchup({ cur, other, flip, question, onChoose, unsure = true }) {
   const [picked, setPicked] = useState(null);
   // The pick pops and the other card steps back for a beat before the next pair arrives.
   const pick = code => {
@@ -250,9 +296,11 @@ export function Matchup({ cur, other, flip, question, onChoose }) {
         {flip ? side(cur, "w") : side(other, "l")}
         {flip ? side(other, "l") : side(cur, "w")}
       </div>
-      <div className="rk-row" style={{ marginTop: 14 }}>
-        <button className="rk-btn small" disabled={!!picked} onClick={() => onChoose("?")}>I don't know</button>
-      </div>
+      {unsure && (
+        <div className="rk-row" style={{ marginTop: 14 }}>
+          <button className="rk-btn small" disabled={!!picked} onClick={() => onChoose("?")}>I don't know</button>
+        </div>
+      )}
     </>
   );
 }
@@ -309,15 +357,22 @@ export function RankList({ ids, byId, onMove, scores, drag }) {
   );
 }
 
-export function Leaderboard({ kind, bySeason, top }) {
-  const [data, setData] = useState(undefined); // undefined = loading, null = failed
-  const [all, setAll] = useState(false);
-
+// fetcher(kind) result: undefined while loading, null if it failed.
+// Callers remount (key) on a new kind, so there's no reset here.
+function useFetched(fetcher, kind) {
+  const [data, setData] = useState(undefined);
   useEffect(() => {
     let live = true;
-    fetchRankLeaderboard(kind).then(d => { if (live) setData(d); });
+    fetcher(kind).then(d => { if (live) setData(d); });
     return () => { live = false; };
-  }, [kind]);
+  }, [fetcher, kind]);
+  return data;
+}
+
+// `empty` replaces the "not enough rankings" note (e.g. with today's vote count).
+export function Leaderboard({ kind, bySeason, top, empty }) {
+  const data = useFetched(fetchRankLeaderboard, kind);
+  const [all, setAll] = useState(false);
 
   if (data === undefined) {
     return (
@@ -327,23 +382,73 @@ export function Leaderboard({ kind, bySeason, top }) {
     );
   }
   if (data === null) return <div className="rk-note">Leaderboard unavailable right now.</div>;
-  if (!data.rows.length) return <div className="rk-note">No rankings yet. Be the first!</div>;
-
   const rows = data.rows.filter(r => bySeason.has(r.season));
+  if (!rows.length) {
+    if (empty) return empty;
+    return <div className="rk-note">{data.total ? `Not enough rankings yet (${data.total} so far). Add yours!` : "No rankings yet. Be the first!"}</div>;
+  }
+
   const shown = all ? rows : rows.slice(0, top || 10);
   const ids = shown.map(r => bySeason.get(r.season).id);
   const lookup = new Map(shown.map(r => [bySeason.get(r.season).id, bySeason.get(r.season)]));
-  const scores = shown.map(r => `${Math.round((1 - r.avgPct) * 100)}`);
+  const scores = shown.map(r => `${Math.round(r.score * 100)}`);
 
   return (
     <>
       <RankList ids={ids} byId={lookup} scores={scores} />
-      {!top && <div className="rk-note">Consensus score out of 100</div>}
+      {!top && <div className="rk-note">Score = chance to beat an average pick, from {data.total} ranking{data.total === 1 ? "" : "s"}</div>}
       {!top && rows.length > 10 && (
         <div className="rk-row">
           <button className="rk-btn small" onClick={() => setAll(a => !a)}>{all ? "Show top 10" : `Show all ${rows.length}`}</button>
         </div>
       )}
+    </>
+  );
+}
+
+// "You vs the Tribe": how a ranking lines up with the consensus, plus the
+// biggest disagreements each way. Shareable, because hot takes get replies.
+export function TribeCompare({ kind, seasons, bySeason, cfg }) {
+  const raw = useFetched(fetchRankRaw, kind);
+  const [copied, setCopied] = useState(false);
+  const sig = seasons.join(",");
+  const cmp = useMemo(() => {
+    if (!raw) return null;
+    const mine = sig.split(",").map(Number);
+    // Leave your own (already submitted) ranking out of the tribe you're compared with.
+    const [pairs, board] = getSubmittedSig(kind) ? withoutRanking(raw.pairs, raw.board, mine) : [raw.pairs, raw.board];
+    return compareToConsensus(mine, consensusRows(pairs, board).map(r => r.season));
+  }, [raw, sig, kind]);
+  if (!cmp) return null;
+  const nm = s => bySeason.get(s)?.name || `#${s}`;
+  const crowd = show().crowd;
+  const take = t => `${nm(t.season)} at #${t.mine} (the ${crowd} has it #${t.tribe})`;
+
+  async function copy() {
+    const text = [
+      `My ${cfg.noun} ranking agrees ${cmp.agreement}% with the ${crowd} ${show().emoji}`,
+      cmp.hot && `🔥 Hottest take: ${take(cmp.hot)}`,
+      cmp.cold && `🧊 Coldest take: ${take(cmp.cold)}`,
+      "",
+      shareUrl(),
+    ].filter(x => x != null).join("\n");
+    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <>
+      <div className="rk-h2">You vs the {cap(crowd)}</div>
+      <div className="rk-tribe">
+        <div className="pct">{cmp.agreement}%</div>
+        <div className="rk-note">agreement with the consensus, across {cmp.n} you both ranked</div>
+        {cmp.hot && <div className="take">🔥 <b>Hottest take:</b> {take(cmp.hot)}</div>}
+        {cmp.cold && <div className="take">🧊 <b>Coldest take:</b> {take(cmp.cold)}</div>}
+      </div>
+      <div className="rk-row">
+        <button className="rk-btn" onClick={copy}>{copied ? "Copied!" : "Copy my takes"}</button>
+      </div>
     </>
   );
 }
@@ -399,11 +504,11 @@ export function ShareButtons({ ranking, byId, cfg, kind, blind }) {
   async function share(count) {
     const top = count ? ranking.slice(0, count) : ranking;
     const text = [
-      count ? `My top ${top.length} ${cfg.noun} 🏝️` : `My ${word}${cfg.noun} ranking 🏝️`,
+      count ? `My top ${top.length} ${cfg.noun} ${show().emoji}` : `My ${word}${cfg.noun} ranking ${show().emoji}`,
       "",
       ...top.map((id, i) => `${i + 1}. ${cfg.line(byId.get(id))}`),
       "",
-      "survivordle.com/rank",
+      shareUrl(),
     ].join("\n");
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
     setCopied(count);
@@ -439,6 +544,26 @@ export function ShareButtons({ ranking, byId, cfg, kind, blind }) {
           <button key={c} className="rk-btn" disabled={busy !== null} onClick={() => shareImage(c)}>
             {busy === c ? "Making image…" : c ? `Image: top ${c}` : sizes.length > 1 ? "Image: full ranking" : "Image"}
           </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// No dead ends: a row of next things to do, minus the page you're on.
+export function KeepPlaying({ navigate, skip = [] }) {
+  const NEXT = [
+    [rp("/today"), "🗳️ Today's Matchup"],
+    [rp("/seasons"), "Rank the seasons"],
+    [rp("/winners"), "Rank the winners"],
+    ...show().next,
+  ];
+  return (
+    <>
+      <div className="rk-label" style={{ textAlign: "center" }}>Keep playing</div>
+      <div className="rk-row">
+        {NEXT.filter(([to]) => !skip.includes(to)).map(([to, label]) => (
+          <button key={to} className="rk-btn small" onClick={() => navigate(to)}>{label}</button>
         ))}
       </div>
     </>

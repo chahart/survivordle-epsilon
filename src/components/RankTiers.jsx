@@ -1,23 +1,36 @@
-import { useMemo, useRef, useState } from "react";
-import { TIER_COLORS, defaultTiers, placeItem, unplacedOf, loadTiers, saveTiers, inkOn } from "../shared/rankTiers";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { show } from "../shared/rankShow";
+import { TIER_COLORS, defaultTiers, placeItem, unplacedOf, loadTiers, saveTiers, inkOn, isSTier, S_LOGO, FLAME_NUDGE, S_DROP } from "../shared/rankTiers";
 import { barColors, moveItem } from "../shared/rank";
 import { renderTierImage, shareOrDownloadImage } from "../shared/rankImage";
 import { CardBody } from "./RankParts";
+import { submitRankTiers } from "../shared/rankApi";
+import { getRankAnonId } from "../shared/rankStorage";
 
 // Tier list for any rankable board (winners, seasons, a season's players).
 // Tap a name then a tier (works everywhere), or drag with a mouse. "Quick place"
-// deals the unplaced ones one at a time. Saved locally; not sent to the consensus.
+// deals the unplaced ones one at a time. Saved
+// locally, and logged to Supabase (rank_tier_lists.sql) once 5+ are placed; there's
+// no public tier consensus yet.
 
 const MAX_TIERS = 10;
-const tagOf = w => (w.card ? "" : w.winner !== undefined ? `${w.season}` : `S${w.season}`);
+const tagOf = w => (w.card ? "" : w.winner !== undefined ? `${w.season}` : `${show().short}${w.season}`);
 const nameOf = t => t.name.trim() || "?";
+// Tier label colors. The S tier puts its letter (same font and size as the others,
+// in the tier's color) inside a black flame; the padding drops it into the flame's
+// round body, which sits ~8% of the image below center. The flame itself sits a
+// touch left and down (FLAME_NUDGE): the tall right tip makes a truly centered
+// flame look lopsided, so this centers it by eye.
+const labStyle = t => (isSTier(t)
+  ? { background: `${t.color} url("${S_LOGO}") calc(50% + var(--logo, 64px) * ${FLAME_NUDGE.x}) calc(50% + var(--logo, 64px) * ${FLAME_NUDGE.y}) / var(--logo, 64px) no-repeat`, color: t.color, paddingTop: `calc(var(--logo, 64px) * ${2 * S_DROP})` }
+  : { background: t.color, color: inkOn(t.color) });
 
 // One big colored button per tier (quick place, and the dock shown while a name is selected).
 function TierButtons({ tiers, onPick }) {
   return (
     <div className="rk-tbtns">
       {tiers.map(t => (
-        <button key={t.id} style={{ background: t.color, color: inkOn(t.color) }} onClick={() => onPick(t.id)}>
+        <button key={t.id} style={labStyle(t)} aria-label={`Tier ${nameOf(t)}`} onClick={() => onPick(t.id)}>
           {nameOf(t)}
         </button>
       ))}
@@ -25,7 +38,7 @@ function TierButtons({ tiers, onPick }) {
   );
 }
 
-export default function RankTiers({ kind, cfg, items, byId, navigate, base }) {
+export default function RankTiers({ kind, cfg, items, byId, navigate, base, title = "Tier List", blurb }) {
   const ids = useMemo(() => items.map(w => w.id), [items]);
   const [tiers, setTiers] = useState(() => loadTiers(kind));
   const [view, setView] = useState("board"); // "board" | "quick" | "edit"
@@ -46,6 +59,17 @@ export default function RankTiers({ kind, cfg, items, byId, navigate, base }) {
 
   const unplaced = unplacedOf(tiers, ids);
   const placedCount = ids.length - unplaced.length;
+
+  // Log changes (not the list as loaded), a few seconds after the last edit.
+  const sent = useRef(JSON.stringify(tiers));
+  useEffect(() => {
+    const json = JSON.stringify(tiers);
+    if (placedCount < 5 || json === sent.current) return;
+    const t = setTimeout(async () => {
+      if (await submitRankTiers(getRankAnonId(), kind, tiers.map(({ name, items }) => ({ name, items })), placedCount)) sent.current = json;
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [tiers, kind, placedCount]);
   const queue = [...unplaced.filter(id => !skipped.includes(id)), ...unplaced.filter(id => skipped.includes(id))];
   const cur = byId.get(queue[0]);
   const mode = view === "quick" && !cur ? "board" : view;
@@ -109,7 +133,7 @@ export default function RankTiers({ kind, cfg, items, byId, navigate, base }) {
     }
   }
 
-  const back = <button className="rk-link" onClick={() => (mode === "board" ? navigate(base) : setView("board"))}>← {mode === "board" ? "Back" : "Back to my tier list"}</button>;
+  const back = <button className="rk-backbtn" onClick={() => (mode === "board" ? navigate(base) : setView("board"))}>{mode === "board" ? "Back" : "My tier list"}</button>;
 
   if (mode === "quick") {
     return (
@@ -169,8 +193,8 @@ export default function RankTiers({ kind, cfg, items, byId, navigate, base }) {
   return (
     <>
       {back}
-      <h1>Tier List</h1>
-      <div className="rk-sub">Tap a name, then tap a tier. With a mouse you can also drag.</div>
+      <h1>{title}</h1>
+      <div className="rk-sub">{blurb ? <>{blurb} </> : null}Tap a name, then tap a tier. With a mouse you can also drag.</div>
       <div className="rk-row">
         {unplaced.length > 0 && <button className={`rk-btn${placedCount ? "" : " primary"}`} onClick={() => { setSel(null); setView("quick"); }}>Quick place</button>}
         <button className="rk-btn" onClick={() => { setSel(null); setView("edit"); }}>Edit tiers</button>
@@ -179,7 +203,7 @@ export default function RankTiers({ kind, cfg, items, byId, navigate, base }) {
       <div className={`rk-tiers${sel || drag ? " aiming" : ""}`}>
         {tiers.map(t => (
           <div key={t.id} data-tier={t.id} className={`rk-tier${drag?.over === t.id ? " over" : ""}`} onClick={() => { if (!wasDrag() && sel) place(sel, t.id); }}>
-            <button className="lab" style={{ background: t.color, color: inkOn(t.color) }} aria-label={`Tier ${nameOf(t)}${sel ? ": place here" : ""}`}>{nameOf(t)}</button>
+            <button className="lab" style={labStyle(t)} aria-label={`Tier ${nameOf(t)}${sel ? ": place here" : ""}`}>{nameOf(t)}</button>
             <div className="its">{t.items.map(chip)}</div>
           </div>
         ))}

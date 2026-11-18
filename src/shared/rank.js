@@ -196,8 +196,8 @@ export function toSortSession(session, ids) {
 }
 
 // A season's players as rankable items, best finish first. `season` holds the
-// 1-based position in that order (not the season number) because that's the key
-// the shared consensus code uses; placements can tie, positions can't.
+// castaway number (US0009 -> 9), not the season number, because that's the key
+// the shared consensus code uses. It stays put when placements get corrected.
 export function playersOf(contestants, season) {
   const ord = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10 < 4 ? n % 10 : 0]}`;
   const all = (contestants || []).filter(c => c.season === season);
@@ -205,9 +205,84 @@ export function playersOf(contestants, season) {
   const label = /^\d+$/.test(all[0]?.seasonName) ? `Survivor ${season}` : `Survivor: ${all[0]?.seasonName}`;
   return all
     .sort((a, b) => a.placement - b.placement || a.name.localeCompare(b.name))
-    .map((c, i) => ({
-      id: c.id, season: i + 1, name: c.name, seasonName: c.seasonName,
+    .map(c => ({
+      id: c.id, season: +c.castaway_id.slice(2), name: c.name, seasonName: c.seasonName,
       label, tribes: [c.tribe_color], sub: `Finished ${ord(c.placement)}`, card: label,
+    }));
+}
+
+// "Best returnees to never win": everyone who played 2+ seasons without winning,
+// one item per person (named as in their latest season). Keyed by castaway number
+// like the cast boards, so the consensus survives data fixes. `bb` switches to Big
+// Brother data (houseguest_id, stripe = best finish).
+export function returneesOf(contestants, bb = false) {
+  const idOf = c => (bb ? c.houseguest_id : c.castaway_id);
+  const tag = bb ? "BB" : "S";
+  const byPerson = new Map();
+  for (const c of contestants || []) {
+    if (!byPerson.has(idOf(c))) byPerson.set(idOf(c), []);
+    byPerson.get(idOf(c)).push(c);
+  }
+  return [...byPerson.values()]
+    .filter(a => a.length >= 2 && !a.some(c => c.placement === 1))
+    .map(a => {
+      const runs = [...a].sort((x, y) => x.season - y.season);
+      const last = runs.at(-1);
+      const seasons = `${tag}${runs.map(c => c.season).join(`, ${tag}`)}`;
+      const best = runs.reduce((b, c) => (FINISH_ORDER.indexOf(c.juryTier) < FINISH_ORDER.indexOf(b.juryTier) ? c : b));
+      return {
+        id: idOf(last), season: +idOf(last).slice(2), name: last.name, seasonName: last.seasonName,
+        tribes: [bb ? FINISH_HEX[best.juryTier] || "#888" : last.tribe_color], sub: `${runs.length}x · ${seasons}`, card: `Played ${runs.length}x · ${seasons}`,
+      };
+    })
+    .sort((x, y) => x.name.localeCompare(y.name));
+}
+
+// ---- Big Brother items (same shapes as the Survivor ones above) ----
+
+// Stripe colors. Seasons (and winners) by era; houseguests by how far they got.
+// Era bounds are the last season of each era.
+export const BB_ERAS = [
+  [2, "Early", "#8a6040"],
+  [10, "Classic", "#3d8f4f"],
+  [17, "Twist", "#7d4fb0"],
+  [22, "Modern", "#d9822b"],
+  [Infinity, "New", "#2a8fa8"],
+];
+export const bbEra = n => BB_ERAS.find(([last]) => n <= last);
+const FINISH_ORDER = ["Winner", "Finalist", "Jury", "Non-Jury"];
+export const FINISH_HEX = { Winner: "#d4a72c", Finalist: "#b8bcc4", Jury: "#5aaedd", "Non-Jury": "#666666" };
+
+// { winners, seasons, returnees } for Big Brother. Seasons are keyed by number like
+// Survivor's; seasonName carries the era so cards read "Season 12 · Twist era".
+export function bbLists(contestants) {
+  const bySeason = new Map();
+  for (const c of contestants || []) {
+    if (!bySeason.has(c.season)) bySeason.set(c.season, []);
+    bySeason.get(c.season).push(c);
+  }
+  const nums = [...bySeason.keys()].sort((a, b) => a - b);
+  const winners = [];
+  const seasons = [];
+  for (const n of nums) {
+    const [, era, color] = bbEra(n);
+    const w = bySeason.get(n).find(c => c.placement === 1);
+    if (w) winners.push({ id: w.id, season: n, name: w.name, seasonName: `${era} era`, tribes: [color], sub: `BB${n} · ${era} era` });
+    seasons.push({ id: `S${n}`, season: n, name: `Big Brother ${n}`, seasonName: `${era} era`, winner: w?.name ?? null, tribes: [color], sub: `${era} era` });
+  }
+  return { winners, seasons, returnees: returneesOf(contestants, true) };
+}
+
+// A Big Brother season's houseguests, best finish first, keyed by houseguest number.
+export function bbCast(contestants, season) {
+  const label = `Big Brother ${season}`;
+  const ord = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10 < 4 ? n % 10 : 0]}`;
+  return (contestants || [])
+    .filter(c => c.season === season)
+    .sort((a, b) => a.placement - b.placement || a.name.localeCompare(b.name))
+    .map(c => ({
+      id: c.id, season: +c.houseguest_id.slice(2), name: c.name, seasonName: label,
+      label, tribes: [FINISH_HEX[c.juryTier] || "#888"], sub: `Finished ${ord(c.placement)}`, card: label,
     }));
 }
 
@@ -231,7 +306,8 @@ export const TRIBE_HEX = {
 
 // Accent colors for an item, top to bottom: a winner's own tribe, or a season's
 // starting tribes with the winner's tribe first.
-export const barColors = w => (w.tribes || [w.tribe_color]).map(t => TRIBE_HEX[t] || "#888");
+// Entries are Survivor tribe color names or (Big Brother) hex colors.
+export const barColors = w => (w.tribes || [w.tribe_color]).map(t => TRIBE_HEX[t] || (/^#[0-9a-f]{6}$/i.test(t) ? t : "#888"));
 
 // Seasons as rankable items, shaped like winners so the UI treats both alike.
 export function seasonItems(contestants) {
@@ -250,3 +326,127 @@ export function seasonItems(contestants) {
 }
 
 export const subOf = w => w.sub || `S${w.season} · ${w.seasonName}`;
+
+// A curated tier template's items (tierTemplates.json). Each entry is a season id
+// ("S12") or a contestant appearance id ("US0016_1"); unknown ids are skipped.
+export function templateItems(template, contestants, seasons) {
+  const sById = new Map(seasons.map(s => [s.id, s]));
+  const cById = new Map((contestants || []).map(c => [c.id, c]));
+  return template.items.flatMap(id => {
+    if (sById.has(id)) return [sById.get(id)];
+    const c = cById.get(id);
+    return c ? [{ id: c.id, season: c.season, name: c.name, seasonName: c.seasonName, tribes: [c.tribe_color] }] : [];
+  });
+}
+
+// ---- Consensus ----
+
+const MIN_VOTES = 5;
+
+// Bradley-Terry strengths from head-to-head counts [{ hi, lo, n }] ("hi" was put
+// above "lo" n times). Unlike averaging positions, this accounts for who each
+// item was compared against. Returns Map key -> chance (0..1) of beating an
+// average item. Each item gets one virtual win and loss vs an average item so a
+// handful of votes can't push anything to 0 or 1.
+export function bradleyTerry(pairs, iters = 200) {
+  const wins = new Map();
+  const games = new Map(); // key -> Map(opponent -> games)
+  const add = (a, b, n) => {
+    if (!games.has(a)) games.set(a, new Map());
+    games.get(a).set(b, (games.get(a).get(b) || 0) + n);
+  };
+  for (const { hi, lo, n } of pairs) {
+    wins.set(hi, (wins.get(hi) || 0) + n);
+    add(hi, lo, n);
+    add(lo, hi, n);
+  }
+  const ids = [...games.keys()];
+  if (!ids.length) return new Map();
+  let p = new Map(ids.map(id => [id, 1]));
+  for (let k = 0; k < iters; k++) {
+    const next = new Map();
+    for (const i of ids) {
+      let d = 2 / (p.get(i) + 1);
+      for (const [j, n] of games.get(i)) d += n / (p.get(i) + p.get(j));
+      next.set(i, ((wins.get(i) || 0) + 1) / d);
+    }
+    p = next;
+  }
+  const g = Math.exp(ids.reduce((s, i) => s + Math.log(p.get(i)), 0) / ids.length);
+  return new Map(ids.map(i => [i, p.get(i) / (p.get(i) + g)]));
+}
+
+// Leaderboard rows, best first. An item shows only once enough people ranked it
+// (5, and at least 20% of the most-ranked item), so one early vote can't top it.
+// boardRows: [{ season, votes }] where votes = rankings that include the item.
+export function consensusRows(pairs, boardRows) {
+  const score = bradleyTerry(pairs);
+  const min = Math.max(MIN_VOTES, 0.2 * Math.max(0, ...boardRows.map(r => r.votes)));
+  return boardRows
+    .filter(r => r.votes >= min && score.has(r.season))
+    .map(r => ({ season: r.season, votes: r.votes, score: score.get(r.season) }))
+    .sort((a, b) => b.score - a.score);
+}
+
+// The consensus minus one person's ranking (so "you vs the tribe" doesn't
+// compare you with yourself, which matters while there are few rankings).
+export function withoutRanking(pairs, boardRows, ranking) {
+  const pos = new Map(ranking.map((s, i) => [s, i]));
+  const above = (a, b) => pos.has(a) && pos.has(b) && pos.get(a) < pos.get(b);
+  return [
+    pairs.map(p => (above(p.hi, p.lo) ? { ...p, n: p.n - 1 } : p)).filter(p => p.n > 0),
+    boardRows.map(r => (pos.has(r.season) ? { ...r, votes: r.votes - 1 } : r)),
+  ];
+}
+
+// How a ranking lines up with the consensus, over the items both contain.
+// mine / tribe: keys (season numbers) best first. Positions are among those
+// shared items. Returns null when there's too little overlap to say.
+export function compareToConsensus(mine, tribe) {
+  const tpos = new Map(tribe.map((s, i) => [s, i]));
+  const common = mine.filter(s => tpos.has(s));
+  const n = common.length;
+  if (n < 5) return null;
+  const theirs = [...common].sort((a, b) => tpos.get(a) - tpos.get(b));
+  const theirRank = new Map(theirs.map((s, i) => [s, i + 1]));
+  let sum = 0;
+  let hot = null;
+  let cold = null;
+  common.forEach((s, i) => {
+    const t = { season: s, mine: i + 1, tribe: theirRank.get(s), d: theirRank.get(s) - (i + 1) }; // d > 0: you rank it higher
+    sum += Math.abs(t.d);
+    if (!hot || t.d > hot.d) hot = t;
+    if (!cold || t.d < cold.d) cold = t;
+  });
+  // Footrule distance, scaled so identical = 100 and fully reversed = 0.
+  return { agreement: Math.round(100 * (1 - sum / Math.floor((n * n) / 2))), hot: hot.d > 0 ? hot : null, cold: cold.d < 0 ? cold : null, n };
+}
+
+// ---- Today's Matchup ----
+
+export const RANK_DAILY_START = "2026-11-17"; // matchup #1; set to launch day
+export const etToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // "YYYY-MM-DD", same clock as the Daily
+export const dailyNumber = day => Math.round((Date.parse(day) - Date.parse(RANK_DAILY_START)) / 864e5) + 1;
+
+// Days in a row voted, ending at matchup `num` (or the day before, if today's
+// vote isn't in yet, so the streak still shows as "keep it alive").
+export function streakOf(votes, num) {
+  const end = votes[num] != null ? num : num - 1;
+  let n = 0;
+  while (votes[end - n] != null) n++;
+  return n;
+}
+
+// Same pair for everyone on a given day; alternates seasons / winners.
+// shortcut: the pick depends on list length, so the day a new season is added the
+// schedule reshuffles; add a hand-made override list if that ever matters.
+export function dailyMatchup(day, lists) {
+  const num = dailyNumber(day);
+  const kind = num % 2 ? "seasons" : "winners";
+  const items = lists[kind];
+  if (items.length < 2) return null;
+  const rand = mulberry32(Math.imul(num, 0x9e3779b1) >>> 0);
+  const a = Math.floor(rand() * items.length);
+  const b = (a + 1 + Math.floor(rand() * (items.length - 1))) % items.length;
+  return { num, kind, a: items[a], b: items[b] };
+}
