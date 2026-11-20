@@ -12,6 +12,7 @@ import {
 import { msUntilMidnightET } from "../shared/gameLogic";
 import SandwichGame from "../components/SandwichGame";
 import useSEO from "../shared/useSEO";
+import { isRankUnlocked } from "../shared/rankStorage";
 
 // ── Daily mode ─────────────────────────────────────────────────────────────────
 function SandwichDaily({ contestants, colorblind }) {
@@ -351,9 +352,11 @@ export default function Sandwich({ contestants, colorblind }) {
         <button className={`ul-tab${activeTab === "unlimited" ? " active" : ""}`} onClick={() => navigate("/sandwich/unlimited")}>
           ♾️ Unlimited
         </button>
+        {!isRankUnlocked() && (
         <button className={`ul-tab${activeTab === "stats"     ? " active" : ""}`} onClick={() => navigate("/sandwich/stats")}>
           📊 Stats
         </button>
+        )}
         <SandwichInfoPopover />
       </div>
 

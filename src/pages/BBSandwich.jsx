@@ -12,6 +12,7 @@ import {
 import { msUntilMidnightET } from "../shared/gameLogic";
 import BBSandwichGame from "../components/BBSandwichGame";
 import useSEO from "../shared/useSEO";
+import { isRankUnlocked } from "../shared/rankStorage";
 
 const BB_HEADER_CSS = `
   .bb-title {
@@ -421,9 +422,11 @@ export default function BBSandwich({ colorblind }) {
         <button className={`ul-tab${activeTab === "unlimited" ? " active" : ""}`} onClick={() => navigate("/bb/sandwich/unlimited")}>
           ♾️ Unlimited
         </button>
+        {!isRankUnlocked() && (
         <button className={`ul-tab${activeTab === "stats"     ? " active" : ""}`} onClick={() => navigate("/bb/sandwich/stats")}>
           📊 Stats
         </button>
+        )}
         <BBSandwichInfoPopover />
       </div>
 

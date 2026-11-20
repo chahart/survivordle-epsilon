@@ -8,6 +8,15 @@ import {
   loadConnectionsStats,
 } from "../shared/storage";
 import { RecallStatsTab, RecallRankings, RecallRankCol } from "../shared/recallStats";
+import { isRankUnlocked } from "../shared/rankStorage";
+import StatsHub from "./StatsHub";
+
+// Rank testers get the new hub; everyone else keeps the classic page.
+export default function Stats(props) {
+  return isRankUnlocked()
+    ? <StatsHub show={props.show || "sv"} {...{ SHOWS, MyStatsTab, DailyTab, GlobalTab, SandwichGlobal, ConnectionsTab }} />
+    : <StatsClassic {...props} />;
+}
 
 const BB_CSS = `
   .bb-title {
@@ -112,7 +121,7 @@ function pct(count, total) {
 }
 
 // ── My Stats Tab ───────────────────────────────────────────────────────────────
-function MyStatsTab({ cfg, part }) {
+function MyStatsTab({ cfg, part, plain }) {
   const [globalAvg, setGlobalAvg] = useState(null);
   useEffect(() => {
     if (part === "wordle") fetchDailyAvgGuesses(cfg.dailyMode).then(d => setGlobalAvg(d?.avg_guesses ?? null));
@@ -143,7 +152,7 @@ function MyStatsTab({ cfg, part }) {
       {part === "wordle" && (
         <>
       {/* Daily personal */}
-      <div className="sp-section-title">{cfg.emoji} Daily</div>
+      <div className="sp-section-title">{plain ? "Daily puzzle" : `${cfg.emoji} Daily`}</div>
       <div className="stats-grid" style={{ marginBottom: "16px" }}>
         {[
           [dStats.played,         "Played"],
@@ -185,7 +194,7 @@ function MyStatsTab({ cfg, part }) {
       <div className="stats-divider" />
 
       {/* Unlimited personal */}
-      <div className="sp-section-title">♾️ Unlimited</div>
+      <div className="sp-section-title">{plain ? "Unlimited" : "♾️ Unlimited"}</div>
       <div className="stats-grid" style={{ marginBottom: "16px" }}>
         {[
           [unlim.played,          "Played"],
@@ -227,7 +236,7 @@ function MyStatsTab({ cfg, part }) {
       {part === "sandwich" && (
         <>
       {/* Sandwich Daily */}
-      <div className="sp-section-title">🥪 Sandwich Daily</div>
+      <div className="sp-section-title">{plain ? "Daily puzzle" : "🥪 Sandwich Daily"}</div>
       {swDaily.played === 0 ? (
         <p style={{ textAlign:"center", color:"var(--text3)", fontSize:"13px", marginBottom:"16px" }}>No games yet</p>
       ) : (
@@ -270,7 +279,7 @@ function MyStatsTab({ cfg, part }) {
       <div className="stats-divider" />
 
       {/* Sandwich Unlimited */}
-      <div className="sp-section-title">🥪 Sandwich Unlimited</div>
+      <div className="sp-section-title">{plain ? "Unlimited" : "🥪 Sandwich Unlimited"}</div>
       {swUnlim.played === 0 ? (
         <p style={{ textAlign:"center", color:"var(--text3)", fontSize:"13px", marginBottom:"16px" }}>No games yet</p>
       ) : (
@@ -414,7 +423,7 @@ function DailyTab({ data, loading, onRetry, cfg }) {
 }
 
 // ── Sandwich global (under the Global tab) ─────────────────────────────────────
-function SandwichGlobal({ show }) {
+function SandwichGlobal({ show, plain }) {
   const [data, setData] = useState(null);
   useEffect(() => { fetchSandwichGlobalStats(show).then(setData); }, [show]);
   const games = Number(data?.total_games || 0);
@@ -426,7 +435,7 @@ function SandwichGlobal({ show }) {
   return (
     <>
       <div className="stats-divider" />
-      <div className="sp-section-title">🥪 Sandwich</div>
+      <div className="sp-section-title">{plain ? "All time" : "🥪 Sandwich"}</div>
       <div className="stats-grid" style={{ marginBottom: "16px" }}>
         {[
           [friendlyCount(games), "Games Played"],
@@ -466,7 +475,7 @@ function SandwichGlobal({ show }) {
 }
 
 // ── Global Tab ─────────────────────────────────────────────────────────────────
-function GlobalTab({ data, loading, onRetry, show }) {
+function GlobalTab({ data, loading, onRetry, show, dailyOnly }) {
   if (loading) return <div className="loading">Loading global stats…</div>;
   if (!data)   return (
     <div style={{ textAlign:"center", marginTop:"40px" }}>
@@ -553,19 +562,19 @@ function GlobalTab({ data, loading, onRetry, show }) {
         </>
       )}
 
-      <RecallRankings show={show} />
-      <SandwichGlobal show={show} />
+      {!dailyOnly && <RecallRankings show={show} />}
+      {!dailyOnly && <SandwichGlobal show={show} />}
     </div>
   );
 }
 
 // ── Connections (Survivordle only) ─────────────────────────────────────────────
-function ConnectionsTab() {
+function ConnectionsTab({ plain }) {
   const st = loadConnectionsStats();
   const winPct = st.played ? Math.round((st.wins / st.played) * 100) : 0;
   return (
     <div className="stats-page-body">
-      <div className="sp-section-title">🧩 Connections (Weekly)</div>
+      <div className="sp-section-title">{plain ? "Weekly puzzles" : "🧩 Connections (Weekly)"}</div>
       {st.played === 0 ? (
         <p style={{ textAlign:"center", color:"var(--text3)", fontSize:"13px" }}>No games yet</p>
       ) : (
@@ -585,7 +594,7 @@ function ConnectionsTab() {
 // ── Main Stats Page ────────────────────────────────────────────────────────────
 // One page for both shows. /stats = Survivordle, /bb/stats = Big Brotherdle.
 // ?tab= selects the tab so game pages can deep-link (my, recall, sandwich, connections, daily, global).
-export default function Stats({ show = "sv" }) {
+function StatsClassic({ show = "sv" }) {
   const cfg = SHOWS[show];
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();

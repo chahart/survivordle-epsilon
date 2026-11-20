@@ -13,6 +13,8 @@ import {
   computeGPA, computeGradeDist,
 } from "../shared/bbRecallLogic";
 import useSEO from "../shared/useSEO";
+import { isRankUnlocked } from "../shared/rankStorage";
+import ResultCard from "../components/ResultCard";
 
 const BB_HEADER_CSS = `
   .bb-title {
@@ -284,6 +286,19 @@ function FlipResults({
         />
       </div>
 
+      {isRankUnlocked() ? (
+        <div className={`rfc-summary${scoreVisible ? " rfc-summary--visible" : ""}`}>
+          {scoreVisible && (
+            <ResultCard
+              show="bb" won={grade !== "F"} accent={gradeColor(grade)}
+              title={<span className="rc-score"><span>{total}<span className="rc-of">/100</span></span><span className="rc-grade">{grade}</span></span>}
+              meta="Big Brotherdle Recall"
+              onShare={onShare} copied={copied} onStats={onNavigateStats}
+              note={isDaily ? "New houseguest at midnight ET" : null}
+            />
+          )}
+        </div>
+      ) : (
       <div className={`rfc-summary${scoreVisible ? " rfc-summary--visible" : ""}`}>
         <div className="recall-score-banner">
           <div className="recall-score-total">{total} / 100</div>
@@ -311,6 +326,7 @@ function FlipResults({
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }
@@ -899,9 +915,11 @@ export default function BBRecall({ colorblind }) {
         <button className={`ul-tab${activeTab === "unlimited" ? " active" : ""}`} onClick={() => navigate("/bb/recall/unlimited")}>
           ♾️ Unlimited
         </button>
+        {!isRankUnlocked() && (
         <button className={`ul-tab${activeTab === "stats"     ? " active" : ""}`} onClick={() => navigate("/bb/recall/stats")}>
           📊 Stats
         </button>
+        )}
         <BBRecallInfoPopover />
       </div>
 

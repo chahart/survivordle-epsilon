@@ -29,3 +29,14 @@ export const rp = (p = "") => current.base + p;
 // Share links, e.g. "survivordle.com/bb/rank/today".
 export const shareUrl = (p = "") => `survivordle.com${rp(p)}`;
 export const cap = s => s[0].toUpperCase() + s.slice(1);
+
+// Same page in the other show, e.g. /recall/archive <-> /bb/recall/archive.
+// Pages one show lacks (Connections, Blog, About...) fall back to that show's home.
+const PAIRED = ["/archive", "/unlimited", "/stats", "/recall", "/sandwich", "/rank", "/how-to-play", "/faq"];
+export function otherShowPath(path) {
+  const isBB = path === "/bb" || path.startsWith("/bb/");
+  const rest = isBB ? path.slice(3) : path;
+  const paired = PAIRED.some(p => rest === p || rest.startsWith(p + "/"));
+  if (isBB) return paired ? rest : "/";
+  return paired ? "/bb" + rest : "/bb";
+}

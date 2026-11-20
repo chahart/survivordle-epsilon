@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { TIER_COLORS, inkOn, isSTier, defaultTiers } from "./rankTiers.js";
-import { setShow, rp, show } from "./rankShow.js";
+import { setShow, rp, show, otherShowPath } from "./rankShow.js";
 import { bradleyTerry, consensusRows, compareToConsensus, dailyMatchup, streakOf, withoutRanking, templateItems, seasonItems, returneesOf, bbLists, bbCast, barColors } from "./rank.js";
 
 // Pairs from rankings: every item beats everything below it.
@@ -104,5 +104,14 @@ setShow("sv");
 assert.equal(rp("/winners"), "/rank/winners");
 assert.ok(isSTier({ name: "S" }) && !isSTier({ name: "B" }));
 assert.equal(defaultTiers().find(t => t.name === "B").color, "#4aaa4a"); // Survivor unchanged
+
+// Show switch keeps you on the same page when the other show has it.
+assert.equal(otherShowPath("/"), "/bb");
+assert.equal(otherShowPath("/bb"), "/");
+assert.equal(otherShowPath("/recall/archive"), "/bb/recall/archive");
+assert.equal(otherShowPath("/bb/rank/winners"), "/rank/winners");
+assert.equal(otherShowPath("/connections/custom"), "/bb");
+assert.equal(otherShowPath("/about"), "/bb");
+assert.equal(otherShowPath("/rankings"), "/bb"); // prefix lookalike isn't a pair
 
 console.log("rank checks passed");

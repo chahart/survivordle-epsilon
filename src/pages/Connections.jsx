@@ -17,6 +17,7 @@ import CustomPuzzleForm from "../components/CustomPuzzleForm";
 import CommunitySearchModal, { CommunityItem } from "../components/CommunitySearchModal";
 import { getConnectionsSEO } from "../shared/connectionsSEO";
 import useSEO from "../shared/useSEO";
+import { isRankUnlocked } from "../shared/rankStorage";
 
 // ── Daily mode ─────────────────────────────────────────────────────────────────
 function ConnectionsDaily({ colorblind }) {
@@ -589,9 +590,11 @@ export default function Connections({ colorblind }) {
         <button className={`ul-tab${activeTab === "community" ? " active" : ""}`} onClick={() => navigate("/connections/community")}>
           🌐 Community
         </button>
+        {!isRankUnlocked() && (
         <button className={`ul-tab${activeTab === "stats"   ? " active" : ""}`} onClick={() => navigate("/connections/stats")}>
           📊 Stats
         </button>
+        )}
         <ConnectionsInfoPopover />
       </div>
 

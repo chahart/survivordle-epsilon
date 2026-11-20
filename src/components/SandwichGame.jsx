@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { normalize } from "../shared/gameLogic";
 import { SANDWICH_MAX_GUESSES, getNeighborPlacements } from "../shared/sandwichLogic";
 import { logSandwichEvent } from "../shared/supabase";
+import { isRankUnlocked } from "../shared/rankStorage";
+import ResultCard from "./ResultCard";
 
 const TRIBE_COLOR_MAP = {
   "Black":       "#333333",
@@ -250,8 +252,17 @@ export default function SandwichGame({
         </div>
       )}
 
+      {gameOver && isRankUnlocked() && (
+        <ResultCard
+          show="sv" won={won} label={bannerLabel} guessCount={guesses.length}
+          lossTitle="Voted out" name={answer.name} sub={`${answer.seasonNameFull} · ${answer.result}`}
+          onShare={handleShare} copied={copied} onStats={onNavigateStats}
+          note={mode === "sandwich_daily" ? `Sandwich #${puzzleNum + 1} drops at midnight ET` : null}
+        />
+      )}
+
       {/* Game over banner */}
-      {gameOver && (
+      {gameOver && !isRankUnlocked() && (
         <div className={`status-banner ${won ? "win" : "lose"}`}>
           {won
             ? <>🥪 {bannerLabel} — got it in {guesses.length}!</>

@@ -17,6 +17,7 @@ export default function RankGate({ children }) {
     if (value.trim().toUpperCase() === RANK_PASSWORD) { // forgiving about case and stray spaces
       setRankUnlocked();
       setUnlocked(true);
+      window.dispatchEvent(new Event("rank-unlock")); // lets App swap in RankNavBar without a reload
     } else {
       setError(true);
     }

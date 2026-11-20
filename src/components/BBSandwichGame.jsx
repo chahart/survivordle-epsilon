@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { normalize } from "../shared/gameLogic";
 import { BB_SANDWICH_MAX_GUESSES, getBBNeighborPlacements } from "../shared/bbSandwichLogic";
 import { logBBSandwichEvent } from "../shared/supabase";
+import { isRankUnlocked } from "../shared/rankStorage";
+import ResultCard from "./ResultCard";
 
 const SANDWICH_SHARE_EMOJI = { correct: "🟩", wrong: "🟥" };
 
@@ -225,8 +227,17 @@ export default function BBSandwichGame({
         </div>
       )}
 
+      {gameOver && isRankUnlocked() && (
+        <ResultCard
+          show="bb" won={won} label={bannerLabel} guessCount={guesses.length}
+          lossTitle="Evicted" name={answer.name} sub={`${answer.seasonNameFull} · ${answer.result}`}
+          onShare={handleShare} copied={copied} onStats={onNavigateStats}
+          note={mode === "bb_sandwich_daily" ? `Sandwich #${puzzleNum + 1} drops at midnight ET` : null}
+        />
+      )}
+
       {/* Game over banner */}
-      {gameOver && (
+      {gameOver && !isRankUnlocked() && (
         <div className={`status-banner ${won ? "win" : "lose"}`}>
           {won
             ? <>🥪 {bannerLabel} — got it in {guesses.length}!</>

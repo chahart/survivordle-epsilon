@@ -3,6 +3,8 @@ import { evaluateBBGuess, BB_MAX_GUESSES, BB_COLUMNS } from "../shared/bbLogic";
 import { isWin, normalize } from "../shared/gameLogic";
 import { STATUS_EMOJI } from "../shared/constants";
 import { logBBSolveEvent } from "../shared/supabase";
+import { isRankUnlocked } from "../shared/rankStorage";
+import ResultCard from "./ResultCard";
 
 export default function BBGameBoard({
   answer,
@@ -176,6 +178,7 @@ export default function BBGameBoard({
     ? `Archive #${puzzleNum}`
     : `Big Brotherdle #${puzzleNum}`;
   const bannerIcon = mode === "bb_unlimited" ? "♾️" : mode === "bb_archive" ? "🗓️" : "👁";
+  const newLook = isRankUnlocked(); // new result card + no-emoji buttons, Rank testers only for now
 
   const cbStyle = colorblind ? `
     .guess-cell.correct { background: #0a2a5a; border: 1px solid #4a8aff; color: #b0d0ff; }
@@ -246,14 +249,14 @@ export default function BBGameBoard({
             onClick={handleHintEpisode}
             disabled={hintEpisode}
           >
-            {hintEpisode ? "✓ Outcome Revealed" : "💡 Reveal Outcome"}
+            {hintEpisode ? "✓ Outcome Revealed" : newLook ? "Reveal Outcome" : "💡 Reveal Outcome"}
           </button>
           <button
             className={`hint-btn${hintNeighbors ? " revealed" : ""}`}
             onClick={handleHintNeighbors}
             disabled={hintNeighbors}
           >
-            {hintNeighbors ? "✓ Neighbors Revealed" : "💡 Reveal Evicted Neighbors"}
+            {hintNeighbors ? "✓ Neighbors Revealed" : newLook ? "Reveal Evicted Neighbors" : "💡 Reveal Evicted Neighbors"}
           </button>
           {!gameOver && !won && (
             <button className="giveup-btn" onClick={handleGiveUp}>Give Up</button>
@@ -291,8 +294,16 @@ export default function BBGameBoard({
         );
       })()}
 
+      {gameOver && newLook && (
+        <ResultCard
+          show="bb" won={won} gaveUp={gaveUp} label={bannerLabel} guessCount={guesses.length}
+          lossTitle="Evicted" name={answer.name} sub={`${answer.seasonNameFull} · ${answer.result}`}
+          onShare={handleShare} copied={copied} onStats={onNavigateStats}
+        />
+      )}
+
       {/* Game over banner */}
-      {gameOver && (
+      {gameOver && !newLook && (
         <div className={`status-banner ${won ? "win" : "lose"}`}>
           {won
             ? <>{bannerIcon} {bannerLabel} — got it in {guesses.length}!</>

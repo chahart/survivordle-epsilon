@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-
 import CSS, { POLISH_CSS, TAB_CSS, SUBTAB_CSS, PRIVACY_CSS, STATS_PAGE_CSS, ABOUT_CSS, FOOTER_CSS, RECALL_CSS, SANDWICH_CSS, CONNECTIONS_CSS } from "./shared/styles";
 import NavBar from "./components/NavBar";
 import BBNavBar from "./components/BBNavBar";
+import RankNavBar from "./components/RankNavBar";
+import { isRankUnlocked } from "./shared/rankStorage";
 import Footer from "./components/Footer";
 import Ramp from "./components/RAMP";
 import Daily from "./pages/Daily";
@@ -62,6 +64,7 @@ export default function App() {
   const [showConnectionsAnnouncement, setShowConnectionsAnnouncement] = useState(false);
   const [showBBS28Announcement, setShowBBS28Announcement] = useState(false);
   const [showCommunityAnnouncement, setShowCommunityAnnouncement] = useState(false);
+  const [rankUnlocked, setRankUnlocked] = useState(isRankUnlocked);
   const navigate = useNavigate();
   const location = useLocation();
   const isBB = location.pathname === "/bb" || location.pathname.startsWith("/bb/");
@@ -84,6 +87,12 @@ export default function App() {
       link.setAttribute("href", "/favicon-32x32.png");
     }
   }, [isBB]);
+
+  useEffect(() => {
+    const onUnlock = () => setRankUnlocked(true);
+    window.addEventListener("rank-unlock", onUnlock);
+    return () => window.removeEventListener("rank-unlock", onUnlock);
+  }, []);
 
   useEffect(() => {
     fetch("/contestants.json")
@@ -209,7 +218,15 @@ export default function App() {
 
         <Ramp PUB_ID={PUB_ID} WEBSITE_ID={WEBSITE_ID} />
 
-        {isBB ? (
+        {rankUnlocked ? (
+          <RankNavBar
+            isBB={isBB}
+            lightMode={lightMode}
+            onToggleLight={() => setLightMode(m => !m)}
+            colorblind={colorblind}
+            onToggleColorblind={() => setColorblind(m => !m)}
+          />
+        ) : isBB ? (
           <BBNavBar
             lightMode={lightMode}
             onToggleLight={() => setLightMode(m => !m)}

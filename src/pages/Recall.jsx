@@ -10,6 +10,8 @@ import {
   computeGPA, computeGradeDist, RECALL_SCHEDULE, RECALL_START_KEY,
 } from "../shared/recallLogic";
 import useSEO from "../shared/useSEO";
+import { isRankUnlocked } from "../shared/rankStorage";
+import ResultCard from "../components/ResultCard";
 
 // ── Tribe color dot ────────────────────────────────────────────────────────────
 const TRIBE_COLOR_MAP = {
@@ -260,6 +262,19 @@ function FlipResults({
         />
       </div>
 
+      {isRankUnlocked() ? (
+        <div className={`rfc-summary${scoreVisible ? " rfc-summary--visible" : ""}`}>
+          {scoreVisible && (
+            <ResultCard
+              show="sv" won={grade !== "F"} accent={gradeColor(grade)}
+              title={<span className="rc-score"><span>{total}<span className="rc-of">/100</span></span><span className="rc-grade">{grade}</span></span>}
+              meta="Survivordle Recall"
+              onShare={onShare} copied={copied} onStats={onNavigateStats}
+              note={isDaily ? "New castaway at midnight ET" : null}
+            />
+          )}
+        </div>
+      ) : (
       <div className={`rfc-summary${scoreVisible ? " rfc-summary--visible" : ""}`}>
         <div className="recall-score-banner">
           <div className="recall-score-total">{total} / 100</div>
@@ -290,6 +305,7 @@ function FlipResults({
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }
@@ -1067,9 +1083,11 @@ export default function Recall({ contestants }) {
         <button className={`ul-tab${activeTab === "unlimited" ? " active" : ""}`} onClick={() => navigate("/recall/unlimited")}>
           ♾️ Unlimited
         </button>
+        {!isRankUnlocked() && (
         <button className={`ul-tab${activeTab === "stats"     ? " active" : ""}`} onClick={() => navigate("/recall/stats")}>
           📊 Stats
         </button>
+        )}
         <RecallInfoPopover />
       </div>
 
