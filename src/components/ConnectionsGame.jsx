@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { CONNECTIONS_MAX_MISTAKES, checkGuess, shuffleTiles } from "../shared/connectionsLogic";
+import { isRankUnlocked } from "../shared/rankStorage";
+import ResultCard from "./ResultCard";
 
 const DIFF_EMOJI = { 1: "🟩", 2: "🟧", 3: "🟪", 4: "🟥" };
 
@@ -451,7 +453,20 @@ export default function ConnectionsGame({
         </>
       )}
 
-      {gameOver && !askContinue && !revealing && !bonusMode && (
+      {gameOver && !askContinue && !revealing && !bonusMode && isRankUnlocked() && (
+        <ResultCard
+          show="sv" won={won} label={bannerLabel}
+          title={won ? "Solved!" : bonusSolved ? "Solved on bonus guesses" : "Out of guesses"}
+          meta={`${won ? `${mistakes} ${mistakes === 1 ? "mistake" : "mistakes"}` : `${guessHistory.length} guesses`} · ${bannerLabel}`}
+          onShare={handleShare} copied={copied} onStats={onNavigateStats}
+          note={mode === "connections_daily" ? "Come back soon for the next puzzle!" : null}
+        >
+          {onNavigateCommunity && <button className="rc-btn" onClick={onNavigateCommunity}>Community</button>}
+          {onNavigateDaily && <button className="rc-btn" onClick={onNavigateDaily}>Main</button>}
+        </ResultCard>
+      )}
+
+      {gameOver && !askContinue && !revealing && !bonusMode && !isRankUnlocked() && (
         <div className={`status-banner ${won ? "win" : "lose"}`}>
           {won
             ? <>⛓️ {bannerLabel} solved with {mistakes} mistake{mistakes !== 1 ? "s" : ""}!</>

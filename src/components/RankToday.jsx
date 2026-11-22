@@ -9,7 +9,11 @@ import { show, rp, shareUrl } from "../shared/rankShow";
 // Today's Matchup: one 1v1 a day, the same for everyone. Vote, then see how the
 // community split. A daily reason to come back; each vote also feeds the consensus.
 
-const QUESTION = { seasons: "Which season is better?", winners: "Who's the better winner?" };
+const QUESTION = {
+  seasons: "Which season is better?",
+  winners: "Who played the better winning game?",
+  returnees: "Who's the better all-time player?",
+};
 const label = (kind, w) => (kind === "winners" ? `${w.name} (${show().short}${w.season})` : w.name);
 
 // Ticks once a minute; reloads at midnight ET so a page left open gets the new matchup (same as the Daily).
@@ -47,7 +51,8 @@ export function TodayPeek({ navigate }) {
   );
 }
 
-export default function RankToday({ lists, navigate }) {
+// inline: shown at the top of the Rank front page (no page header or Keep playing).
+export default function RankToday({ lists, navigate, inline = false }) {
   const [day] = useState(etToday);
   const m = dailyMatchup(day, lists);
   const [votes, setVotes] = useState(loadDailyVotes);
@@ -88,7 +93,12 @@ export default function RankToday({ lists, navigate }) {
   }
 
   const streak = streakOf(votes, m.num);
-  const head = (
+  const head = inline ? (
+    <div className="rk-hrow">
+      <div className="rk-h2">Today's Matchup · #{m.num}</div>
+      <button className="rk-link" onClick={() => navigate(rp("/today"))}>Open</button>
+    </div>
+  ) : (
     <>
       <button className="rk-backbtn" onClick={() => navigate(rp())}>All rankings</button>
       <h1>Today's Matchup</h1>
@@ -100,7 +110,7 @@ export default function RankToday({ lists, navigate }) {
     return (
       <>
         {head}
-        {streak > 0 && <div className="rk-note">Vote to keep your <b>🔥 {streak}-day streak</b> alive</div>}
+        {streak > 0 && <div className="rk-note">Vote to keep your <b>{streak}-day streak</b> alive</div>}
         <Matchup cur={m.a} other={m.b} flip={false} question={QUESTION[m.kind]} onChoose={vote} unsure={false} />
       </>
     );
@@ -157,14 +167,14 @@ export default function RankToday({ lists, navigate }) {
         </div>
       )}
       <div className="rk-note">
-        <b>{streak > 1 ? `🔥 ${streak}-day streak` : "🔥 Day 1. Come back tomorrow to keep it going."}</b>
+        <b>{streak > 1 ? `${streak}-day streak` : "Day 1. Come back tomorrow to keep it going."}</b>
       </div>
       <Countdown />
       <div className="rk-row">
         <button className="rk-btn primary" onClick={share}>{copied ? "Copied!" : "Share"}</button>
         <button className="rk-btn" onClick={() => navigate(rp(`/${m.kind}`))}>Rank all the {m.kind}</button>
       </div>
-      <KeepPlaying navigate={navigate} skip={[rp("/today"), rp(`/${m.kind}`)]} />
+      {!inline && <KeepPlaying skip={[rp("/today"), rp(`/${m.kind}`)]} />}
     </>
   );
 }

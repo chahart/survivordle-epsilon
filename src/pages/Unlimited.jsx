@@ -1,4 +1,6 @@
 import { useState, useCallback } from "react";
+import { isRankUnlocked } from "../shared/rankStorage";
+import ModeTabs from "../components/ModeTabs";
 import { useNavigate } from "react-router-dom";
 import { getRandomAnswer } from "../shared/gameLogic";
 import { saveUnlimitedGame } from "../shared/storage";
@@ -47,7 +49,9 @@ export default function Unlimited({ contestants, colorblind }) {
         <div className="tagline">Unlimited Mode &nbsp;·&nbsp; Play as many as you like</div>
       </header>
 
-      {/* Top tabs: Play / Stats */}
+      {/* Top tabs: Play / Stats (old look) */}
+      <ModeTabs base="" legacy={false} />
+      {!isRankUnlocked() && (
       <div className="ul-tabs">
         <button className={`ul-tab${activeTab === "play" ? " active" : ""}`} onClick={() => setActiveTab("play")}>
           ♾️ Play
@@ -56,6 +60,7 @@ export default function Unlimited({ contestants, colorblind }) {
           📊 Stats
         </button>
       </div>
+      )}
 
       {activeTab === "play" && (
         <>

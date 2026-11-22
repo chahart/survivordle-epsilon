@@ -26,6 +26,8 @@ import { MAX_GUESSES, COLUMNS, STATUS_EMOJI } from "../shared/constants";
 import { logSolveEvent } from "../shared/supabase";
 import { isRankUnlocked } from "../shared/rankStorage";
 import ResultCard from "./ResultCard";
+import HintCards from "./HintCards";
+import { hintOutcome } from "../shared/hintOutcome";
 
 export default function GameBoard({
   answer,
@@ -263,7 +265,12 @@ export default function GameBoard({
       )}
 
       {/* Hints */}
-      {guesses.length > 0 && (
+      {guesses.length > 0 && newLook && answer && (
+        <HintCards answer={answer} hintEpisode={hintEpisode} hintNeighbors={hintNeighbors}
+          onHintEpisode={handleHintEpisode} onHintNeighbors={handleHintNeighbors}
+          onGiveUp={!gameOver && !won ? handleGiveUp : null} />
+      )}
+      {guesses.length > 0 && !newLook && (
         <div className="hint-bar">
           <span className="hint-label">Hints:</span>
           <button
@@ -286,16 +293,8 @@ export default function GameBoard({
         </div>
       )}
 
-      {(hintEpisode || hintNeighbors) && answer && (() => {
-        const tier = answer.juryTier;
-        const isWinner   = tier === "Winner";
-        const isFinalist = tier === "Finalist";
-        const tierLabel  = isWinner || isFinalist ? "Finalist" : tier === "Jury" ? "Juror" : "Pre-Jury";
-        const outcomeText = isWinner
-          ? "Survived until Final Tribal Council (Won)"
-          : isFinalist
-          ? "Survived until Final Tribal Council"
-          : `Eliminated during Episode ${answer.episodeOut ?? "?"}, Day ${answer.day ?? "?"}`;
+      {(hintEpisode || hintNeighbors) && answer && !newLook && (() => {
+        const { tierLabel, outcomeText } = hintOutcome(answer);
         return (
           <div className="hint-panels">
             {hintEpisode && (

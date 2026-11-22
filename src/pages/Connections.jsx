@@ -13,6 +13,7 @@ import {
 } from "../shared/storage";
 import { msUntilMidnightET } from "../shared/gameLogic";
 import ConnectionsGame from "../components/ConnectionsGame";
+import ModeTabs from "../components/ModeTabs";
 import CustomPuzzleForm from "../components/CustomPuzzleForm";
 import CommunitySearchModal, { CommunityItem } from "../components/CommunitySearchModal";
 import { getConnectionsSEO } from "../shared/connectionsSEO";
@@ -59,7 +60,7 @@ function ConnectionsDaily({ colorblind }) {
       <div className="mode-banner">
         <div className="mode-banner-left">
           <span className="mode-banner-label">Connections Weekly</span>
-          <span className="mode-banner-title">⛓️ Puzzle #{puzzle.puzzleNumber}{puzzle.title ? ` - ${puzzle.title}` : ""}</span>
+          <span className="mode-banner-title">{isRankUnlocked() ? "" : "⛓️ "}Puzzle #{puzzle.puzzleNumber}{puzzle.title ? ` - ${puzzle.title}` : ""}</span>
         </div>
       </div>
       <ConnectionsGame
@@ -516,7 +517,6 @@ function ConnectionsInfoPopover() {
 
 // ── Root Connections page ──────────────────────────────────────────────────────
 export default function Connections({ colorblind }) {
-  const navigate = useNavigate();
   const location = useLocation();
 
   const seo = getConnectionsSEO(location.pathname);
@@ -577,26 +577,14 @@ export default function Connections({ colorblind }) {
         <div className="tagline">Connections Mode &nbsp;·&nbsp; Find the four groups</div>
       </header>
 
-      <div className="ul-tabs" style={{ position: "relative" }}>
-        <button className={`ul-tab${activeTab === "daily"     ? " active" : ""}`} onClick={() => navigate("/connections")}>
-          ⛓️ Weekly
-        </button>
-        <button className={`ul-tab${activeTab === "archive" ? " active" : ""}`} onClick={() => navigate("/connections/archive")}>
-          📁 Archive
-        </button>
-        <button className={`ul-tab${activeTab === "custom"  ? " active" : ""}`} onClick={() => navigate("/connections/custom")}>
-          ✏️ Custom
-        </button>
-        <button className={`ul-tab${activeTab === "community" ? " active" : ""}`} onClick={() => navigate("/connections/community")}>
-          🌐 Community
-        </button>
-        {!isRankUnlocked() && (
-        <button className={`ul-tab${activeTab === "stats"   ? " active" : ""}`} onClick={() => navigate("/connections/stats")}>
-          📊 Stats
-        </button>
-        )}
+      <ModeTabs base="/connections" active={{ daily: "/connections" }[activeTab] ?? `/connections/${activeTab}`} tabs={[
+        ["Weekly", "/connections", "⛓️"],
+        ["Archive", "/connections/archive", "📁"],
+        ["Custom", "/connections/custom", "✏️"],
+        ["Community", "/connections/community", "🌐"],
+      ]}>
         <ConnectionsInfoPopover />
-      </div>
+      </ModeTabs>
 
       {activeTab === "daily"   && <ConnectionsDaily   colorblind={colorblind} />}
       {activeTab === "archive" && <ConnectionsArchive colorblind={colorblind} />}

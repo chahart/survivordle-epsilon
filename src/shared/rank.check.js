@@ -34,7 +34,7 @@ assert.equal(compareToConsensus([1, 2], [1, 2]), null);
 
 // Daily: same day, same pair; two different items; consecutive days differ.
 const items = n => Array.from({ length: n }, (_, i) => ({ id: `S${i + 1}`, season: i + 1 }));
-const lists = { seasons: items(50), winners: items(50) };
+const lists = { seasons: items(50), winners: items(50), returnees: items(50).map(r => ({ ...r, seasons: [r.season, r.season + 1] })) };
 const d1 = dailyMatchup("2026-12-01", lists);
 assert.deepEqual(dailyMatchup("2026-12-01", lists), d1);
 assert.notEqual(d1.a.id, d1.b.id);
@@ -43,8 +43,13 @@ for (let i = 0; i < 60; i++) {
   const m = dailyMatchup(new Date(Date.UTC(2027, 0, 1 + i)).toISOString().slice(0, 10), lists);
   assert.notEqual(m.a.id, m.b.id);
   if (prev) assert.notEqual(`${m.kind}${m.a.id}${m.b.id}`, prev);
+  // Never the newest season (50): not as a season/winner, not a returnee who played in it.
+  for (const w of [m.a, m.b]) assert.ok(m.kind === "returnees" ? !w.seasons.includes(50) : w.season !== 50);
   prev = `${m.kind}${m.a.id}${m.b.id}`;
 }
+
+// All three kinds come up.
+assert.deepEqual(new Set([1, 2, 3].map(n => dailyMatchup(new Date(Date.parse("2026-11-17") + (n - 1) * 864e5).toISOString().slice(0, 10), lists).kind)), new Set(["seasons", "winners", "returnees"]));
 
 // Streak: counts back from today, or from yesterday if today isn't voted yet.
 assert.equal(streakOf({ 3: 1, 4: 1, 5: 1 }, 5), 3);

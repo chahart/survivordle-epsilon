@@ -46,7 +46,7 @@ function Tile({ b, navigate }) {
       <span className="k">{b.kicker}</span>
       <span className="t">{b.title}</span>
       {b.placed > 0
-        ? <span className="p"><span className="bar"><i style={{ width: `${(b.placed / b.total) * 100}%` }} /></span>{done ? "✓ Done" : `${b.placed}/${b.total}`}</span>
+        ? <span className="p"><span className="bar"><i style={{ width: `${(b.placed / b.total) * 100}%` }} /></span>{done ? "Done" : `${b.placed}/${b.total}`}</span>
         : <span className="p">{b.total} to place</span>}
     </button>
   );
@@ -74,33 +74,48 @@ export function TierStrip({ lists, contestants, templates, navigate }) {
   );
 }
 
-// /rank/tiers: everything, grouped. Casts are compact chips (there are 50+).
+// /rank/tiers: everything, grouped. Main lists fill a row of tiles; the 50+ casts
+// are a dense two/three-column grid of rows, grouped by decade, newest first.
 export function TierGallery({ lists, contestants, templates, navigate }) {
   const all = useTierLists(lists, contestants, templates);
   const started = all.filter(inProgress);
   const groups = [...new Set(all.map(b => b.group))].filter(g => g !== "Casts");
   const casts = all.filter(b => b.group === "Casts");
+  const decades = [...new Set(casts.map(b => Math.floor((+b.kind.slice(1) - 1) / 10)))]; // casts are already newest first
   const grid = bs => <div className="rk-tilegrid">{bs.map(b => <Tile key={b.kind} b={b} navigate={navigate} />)}</div>;
+  const word = show().id === "bb" ? "houseguests" : "castaways";
   return (
     <>
       <button className="rk-backbtn" onClick={() => navigate(rp())}>All rankings</button>
       <h1>Tier Lists</h1>
       <div className="rk-sub">Sort them from S to F. Saved on this device; share any list as an image.</div>
-      {started.length > 0 && <><div className="rk-label">In progress</div>{grid(started)}</>}
+      {started.length > 0 && <><div className="rk-h2">Pick up where you left off</div>{grid(started)}</>}
       {groups.map(g => (
         <div key={g}>
-          <div className="rk-label">{g}</div>
+          <div className="rk-h2">{g === "Core" ? "The big ones" : g}</div>
           {grid(all.filter(b => b.group === g))}
         </div>
       ))}
-      <div className="rk-label">Casts</div>
-      <div className="rk-chips">
-        {casts.map(b => (
-          <button key={b.kind} className="rk-chip" onClick={() => navigate(b.to)}>
-            <b>{b.kind.slice(1)}</b> {show().id === "bb" ? "" : b.title}{b.placed > 0 && <small> · {b.placed === b.total ? "✓" : `${b.placed}/${b.total}`}</small>}
-          </button>
-        ))}
+      <div className="rk-hrow">
+        <div className="rk-h2">Every cast</div>
+        <span className="rk-note" style={{ margin: 0 }}>{casts.length} seasons</span>
       </div>
+      {decades.map(d => (
+        <div key={d}>
+          <div className="rk-label">{show().short}{d * 10 + 1}–{show().short}{d * 10 + 10}</div>
+          <div className="rk-casts">
+            {casts.filter(b => Math.floor((+b.kind.slice(1) - 1) / 10) === d).map(b => (
+              <button key={b.kind} className="rk-cast" onClick={() => navigate(b.to)}>
+                <span className="n">{b.kind.slice(1)}</span>
+                <span className="t">{show().id === "bb" ? `Big Brother ${b.kind.slice(1)}` : b.title}</span>
+                {b.placed > 0
+                  ? <span className="p"><span className="bar"><i style={{ width: `${(b.placed / b.total) * 100}%` }} /></span>{b.placed === b.total ? "Done" : `${b.placed}/${b.total}`}</span>
+                  : <span className="p">{b.total} {word}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
     </>
   );
 }

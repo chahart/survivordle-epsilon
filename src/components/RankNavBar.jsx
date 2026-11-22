@@ -7,7 +7,7 @@ import { otherShowPath } from "../shared/rankShow";
 
 const SHOWS = {
   sv: {
-    logo: <>SURV🔥VORDLE</>,
+    logo: <>SURVIVORDLE</>,
     home: "/", stats: "/stats", how: "/how-to-play", faq: "/faq", rank: "/rank",
     rankBlurb: "Tier every Survivor winner",
     games: [
@@ -20,7 +20,7 @@ const SHOWS = {
     ],
   },
   bb: {
-    logo: <>BIG BR👁THERDLE</>,
+    logo: <>BIG BROTHERDLE</>,
     home: "/bb", stats: "/bb/stats", how: "/bb/how-to-play", faq: "/bb/faq", rank: "/bb/rank",
     rankBlurb: "Tier every Big Brother winner",
     games: [
@@ -90,7 +90,9 @@ export default function RankNavBar({ isBB, lightMode, onToggleLight, colorblind,
       </header>
 
       <div className={`rnav-scrim${open ? " open" : ""}`} onClick={() => setOpen(false)} />
-      <div className={`rnav-sheet${open ? " open" : ""}`} role="dialog" aria-modal="true" aria-label="Menu" inert={!open}>
+      {/* Any link closes the sheet, even one to the page you're on (e.g. Daily right after switching shows). */}
+      <div className={`rnav-sheet${open ? " open" : ""}`} role="dialog" aria-modal="true" aria-label="Menu" inert={!open}
+        onClick={e => { if (e.target.closest("a")) setOpen(false); }}>
         <div className="rnav-seg" role="tablist">
           {[false, true].map(bb => (
             <button key={bb} role="tab" aria-selected={isBB === bb} className={isBB === bb ? "on" : ""}

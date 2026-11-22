@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { isRankUnlocked } from "../shared/rankStorage";
+import ModeTabs from "../components/ModeTabs";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   BB_PRELAUNCH, BB_LAUNCH, BB_MAX_GUESSES,
@@ -469,9 +471,13 @@ export default function BB({ colorblind }) {
         <div className="tagline">Guess the Big Brother Houseguest</div>
       </header>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
-        <BBInfoPopover />
-      </div>
+      {isRankUnlocked() ? (
+        <ModeTabs base="/bb" legacy={false}><BBInfoPopover /></ModeTabs>
+      ) : (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+          <BBInfoPopover />
+        </div>
+      )}
 
       {activeTab === "daily"     && <BBDaily     contestants={houseguests} colorblind={colorblind} />}
       {activeTab === "archive"   && <BBArchive   contestants={houseguests} colorblind={colorblind} />}

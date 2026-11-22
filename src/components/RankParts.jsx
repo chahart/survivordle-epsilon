@@ -1,3 +1,6 @@
+import { useLocation } from "react-router-dom";
+import { MoreTiles } from "./ResultCard";
+import { getMoreTiles } from "../shared/upNext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchRankLeaderboard, fetchRankRaw } from "../shared/rankApi";
 import { subOf, barColors, compareToConsensus, consensusRows, withoutRanking } from "../shared/rank";
@@ -48,7 +51,7 @@ export const RANK_CSS = `
   .rk-item .sc { color: var(--rk-accent); font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
   .rk-item .mv { display: flex; gap: 4px; }
   .rk-h2 { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1.5px; margin: 26px 0 8px; color: var(--rk-accent); }
-  .rk-label { color: var(--text); font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin: 14px 0 6px; }
+  .rk-label { color: var(--text3); font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin: 14px 0 6px; }
   .rk-link { background: none; border: none; color: var(--rk-accent); font-size: 12px; text-decoration: underline;
     cursor: pointer; font-family: inherit; padding: 2px; }
   .rk-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin: 10px 0 16px; }
@@ -229,6 +232,88 @@ export const RANK_CSS = `
     .rk-item .se { display: none; }
     .rk-tier .lab { flex-basis: 54px; font-size: 26px; --logo: 54px; }
     .rk-btn.big { width: 100%; }
+  }
+
+  /* ---- Site-matched sizing (Nov 2026). Brings Rank down to the scale of the rest
+     of the site: 14px body, small caps section labels, 36-44px controls.
+     Delete this block to revert. ---- */
+  .rk { padding: 4px 0 40px; }
+  .rk h1 { font-size: 34px; margin: 8px 0 2px; }
+  .rk h1::after { width: 40px; height: 3px; margin-top: 6px; }
+  .rk .rk-sub { font-size: 13px; margin-bottom: 14px; }
+  .rk-h2 { font: 600 11px 'DM Sans', sans-serif; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text2);
+    display: flex; align-items: center; gap: 8px; margin: 22px 0 10px; }
+  .rk-h2::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--rk-accent); }
+  .rk-hrow { align-items: center; margin: 22px 0 10px; }
+  .rk-link { font-size: 12.5px; font-weight: 600; text-decoration: none; }
+  .rk-link:hover { text-decoration: underline; }
+  .rk-q { font-size: 17px; margin: 6px 0 12px; }
+  .rk-note { font-size: 12.5px; }
+
+  .rk-btn { min-height: 40px; padding: 0 16px; font-size: 14px; border-radius: 10px; border-color: var(--border2); background: var(--bg2); }
+  .rk-btn.primary { color: #fff; }
+  .rk-btn.big { min-height: 48px; padding: 0 24px; font-size: 15px; min-width: 200px; }
+  .rk-btn.small { min-height: 32px; padding: 0 10px; font-size: 12.5px; }
+  .rk-backbtn { min-height: 36px; padding: 0 12px 0 10px; font-size: 13px; border-color: var(--border2); margin: 0 0 6px; }
+  .rk-backbtn::before { font-size: 15px; }
+
+  .rk-seg { gap: 2px; padding: 3px; border-radius: 11px; background: var(--bg2); border: 1px solid var(--border2); }
+  .rk-seg button { min-height: 36px; padding: 0 16px; border-radius: 8px; background: none; color: var(--text2); font-size: 13px; }
+  .rk-seg button:hover { color: var(--text); }
+  .rk-seg button.on { background: var(--rk-accent); color: #fff; }
+
+  .rk-big { padding: 14px 16px; margin: 10px 0; border-left-width: 3px; border-color: var(--border2); border-left-color: var(--rk-accent); }
+  .rk-big .t, .rk-cards .rk-big .t { font: 600 15px 'DM Sans', sans-serif; letter-spacing: 0; color: var(--text); }
+  .rk-big .d { font-size: 12.5px; }
+  .rk-cards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0; }
+
+  .rk-vs { gap: 8px; }
+  .rk-pick { min-height: 96px; padding: 14px 14px 14px 20px; border-color: var(--border2); }
+  .rk-pick .nm { font-size: 16px; }
+  .rk-pick .se { font-size: 12.5px; margin-top: 4px; }
+  .rk-back { font-size: 48px; }
+
+  .rk-list { border-color: var(--border2); border-radius: 12px; }
+  .rk-item { font-size: 14px; padding: 8px 12px 8px 18px; }
+  .rk-item .pos { width: 24px; }
+  .rk-split .side { padding: 10px 12px; font-size: 14px; border-color: var(--border2); }
+  .rk-tribe { border-color: var(--border2); }
+  .rk-tribe .pct { font-size: 44px; }
+  .rk-tribe .take { font-size: 14px; }
+
+  .rk-tile { flex-basis: 136px; height: 96px; border-color: var(--border2); border-top-width: 3px; box-shadow: none; }
+  .rk-tile:hover { box-shadow: none; }
+  .rk-tile .t { font-size: 18px; }
+  .rk-tilegrid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+
+  .rk-tier { min-height: 52px; }
+  .rk-tier .lab { flex-basis: 56px; font-size: 24px; }
+  .rk-tray { min-height: 52px; }
+  .rk-tchip { font-size: 13px; padding: 6px 9px 6px 13px; }
+  .rk-tbtns button { min-width: 44px; min-height: 44px; font-size: 22px; }
+  .rk-dock .who { font-size: 14px; }
+
+  /* Tier gallery: casts as a dense grid of rows */
+  .rk-tilegrid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .rk-casts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; margin-bottom: 6px; }
+  .rk-cast { display: grid; grid-template-columns: 34px 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 2px; align-items: center;
+    text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border2); background: var(--bg2);
+    color: var(--text); cursor: pointer; font-family: inherit; transition: border-color .12s, background .12s, transform .12s var(--rk-out); }
+  .rk-cast:hover { border-color: var(--rk-accent); background: var(--bg3); }
+  .rk-cast:active { transform: scale(.98); }
+  .rk-cast .n { grid-row: 1 / span 2; display: flex; align-items: center; justify-content: center; height: 34px; border-radius: 8px;
+    font: 400 20px/1 'Bebas Neue', sans-serif; color: var(--rk-accent); background: color-mix(in srgb, var(--rk-accent) 14%, transparent); }
+  .rk-cast .t { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .rk-cast .p { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; }
+  .rk-cast .bar { flex: 1; height: 3px; border-radius: 2px; background: var(--bg3); overflow: hidden; }
+  .rk-cast .bar i { display: block; height: 100%; background: var(--rk-accent); }
+
+  @media (max-width: 480px) {
+    .rk-casts { grid-template-columns: 1fr 1fr; }
+    .rk h1 { font-size: 30px; }
+    .rk-pick { min-height: 76px; padding: 12px 12px 12px 18px; }
+    .rk-tier .lab { flex-basis: 48px; font-size: 22px; }
+    .rk-btn.big { min-width: 0; }
   }
 `;
 
@@ -443,8 +528,8 @@ export function TribeCompare({ kind, seasons, bySeason, cfg }) {
       <div className="rk-tribe">
         <div className="pct">{cmp.agreement}%</div>
         <div className="rk-note">agreement with the consensus, across {cmp.n} you both ranked</div>
-        {cmp.hot && <div className="take">🔥 <b>Hottest take:</b> {take(cmp.hot)}</div>}
-        {cmp.cold && <div className="take">🧊 <b>Coldest take:</b> {take(cmp.cold)}</div>}
+        {cmp.hot && <div className="take"><b style={{ color: "#e05040" }}>Hottest take:</b> {take(cmp.hot)}</div>}
+        {cmp.cold && <div className="take"><b style={{ color: "#5aaedd" }}>Coldest take:</b> {take(cmp.cold)}</div>}
       </div>
       <div className="rk-row">
         <button className="rk-btn" onClick={copy}>{copied ? "Copied!" : "Copy my takes"}</button>
@@ -551,21 +636,14 @@ export function ShareButtons({ ranking, byId, cfg, kind, blind }) {
 }
 
 // No dead ends: a row of next things to do, minus the page you're on.
-export function KeepPlaying({ navigate, skip = [] }) {
-  const NEXT = [
-    [rp("/today"), "🗳️ Today's Matchup"],
-    [rp("/seasons"), "Rank the seasons"],
-    [rp("/winners"), "Rank the winners"],
-    ...show().next,
-  ];
-  return (
-    <>
-      <div className="rk-label" style={{ textAlign: "center" }}>Keep playing</div>
-      <div className="rk-row">
-        {NEXT.filter(([to]) => !skip.includes(to)).map(([to, label]) => (
-          <button key={to} className="rk-btn small" onClick={() => navigate(to)}>{label}</button>
-        ))}
-      </div>
-    </>
-  );
+export function KeepPlaying({ skip = [] }) {
+  const { pathname } = useLocation();
+  const id = show().id;
+  const rank = [
+    { to: rp("/today"), name: "Today's Matchup", blurb: "One vote a day" },
+    { to: rp("/seasons"), name: "Rank the seasons", blurb: "Head to head" },
+    { to: rp("/winners"), name: "Rank the winners", blurb: "Head to head" },
+  ].map(t => ({ ...t, show: id, kind: "rank" }));
+  const tiles = [...rank, ...getMoreTiles(id, pathname).filter(t => t.kind !== "rank")].filter(t => !skip.includes(t.to));
+  return <MoreTiles tiles={tiles} />;
 }

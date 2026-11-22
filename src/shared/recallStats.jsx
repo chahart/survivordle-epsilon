@@ -4,6 +4,9 @@ import {
   loadAllBBRecallDailyResults, loadBBRecallUnlimitedHistory,
 } from "./storage";
 import { fetchRecallGlobalStats, fetchBBRecallGlobalStats } from "./supabase";
+import { isRankUnlocked } from "./rankStorage";
+// Rank testers get the restyled stats (GPA tile, theme-tinted grade bars); everyone
+// else keeps the classic look until the new look ships.
 
 const GPA_SCALE = { "A+": 4.0, "A": 4.0, "A-": 3.66, "B+": 3.33, "B": 3.0, "B-": 2.66, "C+": 2.33, "C": 2.0, "C-": 1.66, "D+": 1.33, "D": 1.0, "F": 0.0 };
 const GRADE_LETTERS = ["A", "B", "C", "D", "F"];
@@ -25,17 +28,35 @@ function computeGPA(results) {
   return (sum / grades.length).toFixed(2);
 }
 
-function gradeBarColor(letter) {
-  if (letter === "A") return { bg: "#1a4d1a", border: "#4aaa4a" };
-  if (letter === "B") return { bg: "#4a2a05", border: "#f09030" };
-  if (letter === "C") return { bg: "#1a2a4a", border: "#4a8aff" };
-  if (letter === "D") return { bg: "#3a3a10", border: "#aaaa4a" };
-  return { bg: "#4a1a1a", border: "#aa4a4a" };
+const GRADE_HEX = { A: "#4aaa4a", B: "#f09030", C: "#4a8aff", D: "#aaaa4a", F: "#c0504a" };
+const CLASSIC_BAR = { A: ["#1a4d1a", "#4aaa4a"], B: ["#4a2a05", "#f09030"], C: ["#1a2a4a", "#4a8aff"], D: ["#3a3a10", "#aaaa4a"], F: ["#4a1a1a", "#aa4a4a"] };
+
+// One grade-distribution row; the grade color is tinted into the theme so it reads in light and dark.
+function GradeRow({ letter, count, max, text }) {
+  const c = GRADE_HEX[letter];
+  const newLook = isRankUnlocked();
+  const [bg, border] = CLASSIC_BAR[letter];
+  const width = count > 0 ? `${Math.max(Math.round((count / max) * 100), 4)}%` : "0%";
+  return (
+    <div className="stat-row">
+      <span className="stat-label" style={newLook ? { color: c, fontWeight: 700 } : undefined}>{letter}</span>
+      <div className="stat-bar-wrap">
+        <div className="stat-bar" style={newLook
+          ? { width, background: `color-mix(in srgb, ${c} ${count === max ? 85 : 50}%, var(--bg3))` }
+          : { width, background: bg, border: `1px solid ${border}` }}>
+          {count > 0 && <span className="stat-bar-count">{text}</span>}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function RecallStatsSection({ results, emptyMsg }) {
+  const newLook = isRankUnlocked();
   if (!results.length) {
-    return <p style={{ textAlign: "center", color: "var(--text3)", marginTop: "24px" }}>{emptyMsg}</p>;
+    return <p style={newLook
+      ? { textAlign: "center", color: "var(--text3)", font: "400 14px 'DM Sans', sans-serif", margin: "8px 0 4px" }
+      : { textAlign: "center", color: "var(--text3)", marginTop: "24px" }}>{emptyMsg}</p>;
   }
 
   const gpa      = computeGPA(results);
@@ -53,13 +74,16 @@ function RecallStatsSection({ results, emptyMsg }) {
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "20px" }}>
-        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "52px", color: "#e8742a", lineHeight: 1 }}>{gpa}</span>
-        <span style={{ fontSize: "13px", color: "var(--text3)", letterSpacing: "1px", textTransform: "uppercase" }}>GPA</span>
-      </div>
+      {!newLook && (
+        <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "20px" }}>
+          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "52px", color: "#e8742a", lineHeight: 1 }}>{gpa}</span>
+          <span style={{ fontSize: "13px", color: "var(--text3)", letterSpacing: "1px", textTransform: "uppercase" }}>GPA</span>
+        </div>
+      )}
 
       <div className="stats-grid" style={{ marginBottom: "20px" }}>
         {[
+          ...(newLook ? [[gpa ?? "—", "GPA"]] : []),
           [played,   "Played"],
           [avgScore, "Avg Score"],
           [best,     "Best Score"],
@@ -72,21 +96,9 @@ function RecallStatsSection({ results, emptyMsg }) {
       </div>
 
       <div className="sp-sub-title">Grade Distribution</div>
-      {GRADE_LETTERS.map(letter => {
-        const count = gradeCounts[letter];
-        const w = count > 0 ? `${Math.max(Math.round((count / gradeMax) * 100), 4)}%` : "0%";
-        const { bg, border } = gradeBarColor(letter);
-        return (
-          <div key={letter} className="stat-row">
-            <span className="stat-label">{letter}</span>
-            <div className="stat-bar-wrap">
-              <div className="stat-bar" style={{ width: w, background: `linear-gradient(90deg, ${bg}, ${bg})`, border: `1px solid ${border}` }}>
-                {count > 0 && <span className="stat-bar-count">{count}</span>}
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      {GRADE_LETTERS.map(letter => (
+        <GradeRow key={letter} letter={letter} count={gradeCounts[letter]} max={gradeMax} text={gradeCounts[letter]} />
+      ))}
     </>
   );
 }
@@ -105,13 +117,24 @@ function friendlyK(n) {
 }
 
 export function RecallRankCol({ title, rows, color }) {
-  return (
+  if (!isRankUnlocked()) return (
     <div>
       <div className="sp-sub-title" style={{ color }}>{title}</div>
       {(rows || []).map((row, i) => (
         <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
           <span style={{ fontSize: "12px", color: "var(--text2)", lineHeight: 1.3, paddingRight: "8px" }}>{row.puzzle}</span>
           <span style={{ fontSize: "13px", fontFamily: "'Bebas Neue', sans-serif", color, whiteSpace: "nowrap" }}>{Math.round(row.avg_score)}%</span>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <div>
+      <div className="sp-sub-title" style={{ color }}>{title}</div>
+      {(rows || []).map((row, i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px", padding: "7px 0", borderBottom: "1px solid var(--border2)" }}>
+          <span style={{ font: "500 13px 'DM Sans', sans-serif", color: "var(--text)", lineHeight: 1.3 }}>{row.puzzle}</span>
+          <span style={{ font: "700 12.5px 'DM Sans', sans-serif", color, whiteSpace: "nowrap" }}>{Math.round(row.avg_score)}%</span>
         </div>
       ))}
     </div>
@@ -123,6 +146,7 @@ function RecallGlobal({ fetchGlobal }) {
   const [loading, setLoading] = useState(true);
   useEffect(() => { fetchGlobal().then(d => { setData(d); setLoading(false); }); }, [fetchGlobal]);
 
+  const newLook = isRankUnlocked();
   const msg = { textAlign: "center", color: "var(--text3)", marginTop: "24px" };
   if (loading) return <p style={msg}>Loading…</p>;
   if (!data)   return <p style={msg}>Could not load global stats.</p>;
@@ -143,7 +167,7 @@ function RecallGlobal({ fetchGlobal }) {
           [friendlyK(data.unlimited_plays || 0), "Unlimited Plays"],
         ].map(([val, lbl]) => (
           <div className="stats-grid-item" key={lbl}>
-            <span className="stats-grid-num" style={{ fontSize: "32px" }}>{val}</span>
+            <span className="stats-grid-num" style={newLook ? undefined : { fontSize: "32px" }}>{val}</span>
             <span className="stats-grid-label">{lbl}</span>
           </div>
         ))}
@@ -154,26 +178,15 @@ function RecallGlobal({ fetchGlobal }) {
           <div className="sp-sub-title">Grade Distribution</div>
           {GRADE_LETTERS.map(letter => {
             const count = Number(gradeDist[letter] || 0);
-            const w = count > 0 ? `${Math.max(Math.round((count / gradeMax) * 100), 4)}%` : "0%";
-            const { bg, border } = gradeBarColor(letter);
-            return (
-              <div key={letter} className="stat-row">
-                <span className="stat-label">{letter}</span>
-                <div className="stat-bar-wrap">
-                  <div className="stat-bar" style={{ width: w, background: bg, border: `1px solid ${border}` }}>
-                    {count > 0 && <span className="stat-bar-count">{Math.round((count / total) * 100)}%</span>}
-                  </div>
-                </div>
-              </div>
-            );
+            return <GradeRow key={letter} letter={letter} count={count} max={gradeMax} text={`${Math.round((count / total) * 100)}%`} />;
           })}
         </>
       )}
 
       {(data.easiest?.length > 0 || data.hardest?.length > 0) && (
         <>
-          <div className="stats-divider" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          {newLook ? <div className="sp-sub-title">Score by puzzle</div> : <div className="stats-divider" />}
+          <div className={newLook ? "sx-two" : undefined} style={newLook ? undefined : { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <RecallRankCol title="Easiest" rows={data.easiest} color="#4aaa4a" />
             <RecallRankCol title="Hardest" rows={data.hardest} color="#e05040" />
           </div>

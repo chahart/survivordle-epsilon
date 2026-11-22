@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import ModeTabs from "../components/ModeTabs";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   getDailyBBSandwichAnswer, getBBSandwichAnswerForPuzzle, getBBSandwichPuzzleNumber,
@@ -12,7 +13,6 @@ import {
 import { msUntilMidnightET } from "../shared/gameLogic";
 import BBSandwichGame from "../components/BBSandwichGame";
 import useSEO from "../shared/useSEO";
-import { isRankUnlocked } from "../shared/rankStorage";
 
 const BB_HEADER_CSS = `
   .bb-title {
@@ -368,7 +368,6 @@ function BBSandwichInfoPopover() {
 
 // ── Root BB Sandwich page ───────────────────────────────────────────────────────
 export default function BBSandwich({ colorblind }) {
-  const navigate = useNavigate();
   const location = useLocation();
   const [houseguests, setHouseguests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -412,23 +411,9 @@ export default function BBSandwich({ colorblind }) {
         <div className="tagline">Sandwich Mode &nbsp;·&nbsp; Who placed between?</div>
       </header>
 
-      <div className="ul-tabs" style={{ position: "relative" }}>
-        <button className={`ul-tab${activeTab === "daily"     ? " active" : ""}`} onClick={() => navigate("/bb/sandwich")}>
-          🥪 Daily
-        </button>
-        <button className={`ul-tab${activeTab === "archive"   ? " active" : ""}`} onClick={() => navigate("/bb/sandwich/archive")}>
-          📁 Archive
-        </button>
-        <button className={`ul-tab${activeTab === "unlimited" ? " active" : ""}`} onClick={() => navigate("/bb/sandwich/unlimited")}>
-          ♾️ Unlimited
-        </button>
-        {!isRankUnlocked() && (
-        <button className={`ul-tab${activeTab === "stats"     ? " active" : ""}`} onClick={() => navigate("/bb/sandwich/stats")}>
-          📊 Stats
-        </button>
-        )}
+      <ModeTabs base="/bb/sandwich" icon="🥪">
         <BBSandwichInfoPopover />
-      </div>
+      </ModeTabs>
 
       {activeTab === "daily"     && <BBSandwichDaily     contestants={houseguests} colorblind={colorblind} />}
       {activeTab === "archive"   && <BBSandwichArchive   contestants={houseguests} colorblind={colorblind} />}

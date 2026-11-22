@@ -231,7 +231,7 @@ export function returneesOf(contestants, bb = false) {
       const seasons = `${tag}${runs.map(c => c.season).join(`, ${tag}`)}`;
       const best = runs.reduce((b, c) => (FINISH_ORDER.indexOf(c.juryTier) < FINISH_ORDER.indexOf(b.juryTier) ? c : b));
       return {
-        id: idOf(last), season: +idOf(last).slice(2), name: last.name, seasonName: last.seasonName,
+        id: idOf(last), season: +idOf(last).slice(2), name: last.name, seasonName: last.seasonName, seasons: runs.map(c => c.season),
         tribes: [bb ? FINISH_HEX[best.juryTier] || "#888" : last.tribe_color], sub: `${runs.length}x · ${seasons}`, card: `Played ${runs.length}x · ${seasons}`,
       };
     })
@@ -437,13 +437,17 @@ export function streakOf(votes, num) {
   return n;
 }
 
-// Same pair for everyone on a given day; alternates seasons / winners.
+// Same pair for everyone on a given day; rotates seasons / winners / returnees.
+// The newest season in the data never appears (it may still be airing): not the
+// season, not its winner, and no returnee who played in it.
 // shortcut: the pick depends on list length, so the day a new season is added the
 // schedule reshuffles; add a hand-made override list if that ever matters.
+const DAILY_KINDS = ["returnees", "seasons", "winners"]; // by matchup number % 3
 export function dailyMatchup(day, lists) {
   const num = dailyNumber(day);
-  const kind = num % 2 ? "seasons" : "winners";
-  const items = lists[kind];
+  const kind = DAILY_KINDS[num % 3];
+  const latest = Math.max(...lists.seasons.map(s => s.season));
+  const items = (lists[kind] || []).filter(w => (kind === "returnees" ? !w.seasons.includes(latest) : w.season !== latest));
   if (items.length < 2) return null;
   const rand = mulberry32(Math.imul(num, 0x9e3779b1) >>> 0);
   const a = Math.floor(rand() * items.length);

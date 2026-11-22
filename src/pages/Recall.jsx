@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import ModeTabs from "../components/ModeTabs";
 import { useNavigate, useLocation } from "react-router-dom";
 import { logRecallEvent, fetchRecallGlobalStats, fetchRecallDailyStats } from "../shared/supabase";
 import { saveRecallUnlimitedGame, loadAllRecallDailyResults, loadRecallUnlimitedHistory } from "../shared/storage";
@@ -1073,23 +1074,9 @@ export default function Recall({ contestants }) {
         <div className="tagline">Recall Mode &nbsp;·&nbsp; Remember the stats</div>
       </header>
 
-      <div className="ul-tabs" style={{ position: "relative" }}>
-        <button className={`ul-tab${activeTab === "daily"     ? " active" : ""}`} onClick={() => navigate("/recall")}>
-          🔥 Daily
-        </button>
-        <button className={`ul-tab${activeTab === "archive"   ? " active" : ""}`} onClick={() => navigate("/recall/archive")}>
-          📁 Archive
-        </button>
-        <button className={`ul-tab${activeTab === "unlimited" ? " active" : ""}`} onClick={() => navigate("/recall/unlimited")}>
-          ♾️ Unlimited
-        </button>
-        {!isRankUnlocked() && (
-        <button className={`ul-tab${activeTab === "stats"     ? " active" : ""}`} onClick={() => navigate("/recall/stats")}>
-          📊 Stats
-        </button>
-        )}
+      <ModeTabs base="/recall" icon="🔥">
         <RecallInfoPopover />
-      </div>
+      </ModeTabs>
 
       {activeTab === "daily"     && <RecallDaily     contestants={contestants} stintMap={stintMap} tribeColors={tribeColors} eligiblePool={contestants} onNavigateStats={() => navigate("/recall/stats")} />}
       {activeTab === "archive"   && <RecallArchive   contestants={contestants} stintMap={stintMap} tribeColors={tribeColors} eligiblePool={contestants} onNavigateStats={() => navigate("/recall/stats")} />}

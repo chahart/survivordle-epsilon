@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import ModeTabs from "../components/ModeTabs";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   getDailySandwichAnswer, getSandwichAnswerForPuzzle, getSandwichPuzzleNumber,
@@ -12,7 +13,6 @@ import {
 import { msUntilMidnightET } from "../shared/gameLogic";
 import SandwichGame from "../components/SandwichGame";
 import useSEO from "../shared/useSEO";
-import { isRankUnlocked } from "../shared/rankStorage";
 
 // ── Daily mode ─────────────────────────────────────────────────────────────────
 function SandwichDaily({ contestants, colorblind }) {
@@ -306,7 +306,6 @@ function SandwichInfoPopover() {
 
 // ── Root Sandwich page ─────────────────────────────────────────────────────────
 export default function Sandwich({ contestants, colorblind }) {
-  const navigate = useNavigate();
   const location = useLocation();
 
   useSEO({
@@ -342,23 +341,9 @@ export default function Sandwich({ contestants, colorblind }) {
         <div className="tagline">Sandwich Mode &nbsp;·&nbsp; Who placed between?</div>
       </header>
 
-      <div className="ul-tabs" style={{ position: "relative" }}>
-        <button className={`ul-tab${activeTab === "daily"     ? " active" : ""}`} onClick={() => navigate("/sandwich")}>
-          🥪 Daily
-        </button>
-        <button className={`ul-tab${activeTab === "archive"   ? " active" : ""}`} onClick={() => navigate("/sandwich/archive")}>
-          📁 Archive
-        </button>
-        <button className={`ul-tab${activeTab === "unlimited" ? " active" : ""}`} onClick={() => navigate("/sandwich/unlimited")}>
-          ♾️ Unlimited
-        </button>
-        {!isRankUnlocked() && (
-        <button className={`ul-tab${activeTab === "stats"     ? " active" : ""}`} onClick={() => navigate("/sandwich/stats")}>
-          📊 Stats
-        </button>
-        )}
+      <ModeTabs base="/sandwich" icon="🥪">
         <SandwichInfoPopover />
-      </div>
+      </ModeTabs>
 
       {activeTab === "daily"     && <SandwichDaily     contestants={contestants} colorblind={colorblind} />}
       {activeTab === "archive"   && <SandwichArchive   contestants={contestants} colorblind={colorblind} />}

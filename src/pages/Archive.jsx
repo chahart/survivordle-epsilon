@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ModeTabs from "../components/ModeTabs";
 import { useNavigate } from "react-router-dom";
 import { getAnswerForPuzzle, getDateForPuzzle, getPuzzleNumber } from "../shared/gameLogic";
 import GameBoard from "../components/GameBoard";
@@ -72,6 +73,8 @@ export default function Archive({ contestants, colorblind }) {
         </div>
         <div className="tagline">Archive &nbsp;·&nbsp; Past Puzzles</div>
       </header>
+
+      <ModeTabs base="" legacy={false} />
 
       <p className="modal-body" style={{ textAlign: "center", marginBottom: "20px" }}>
         Play any past puzzle. Archive games don't affect your stats or streak.

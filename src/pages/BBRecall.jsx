@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import ModeTabs from "../components/ModeTabs";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   saveBBRecallUnlimitedGame, loadAllBBRecallDailyResults, loadBBRecallUnlimitedHistory,
@@ -905,23 +906,9 @@ export default function BBRecall({ colorblind }) {
         <div className="tagline">Recall Mode &nbsp;·&nbsp; Remember the stats</div>
       </header>
 
-      <div className="ul-tabs" style={{ position: "relative" }}>
-        <button className={`ul-tab${activeTab === "daily"     ? " active" : ""}`} onClick={() => navigate("/bb/recall")}>
-          👁 Daily
-        </button>
-        <button className={`ul-tab${activeTab === "archive"   ? " active" : ""}`} onClick={() => navigate("/bb/recall/archive")}>
-          📁 Archive
-        </button>
-        <button className={`ul-tab${activeTab === "unlimited" ? " active" : ""}`} onClick={() => navigate("/bb/recall/unlimited")}>
-          ♾️ Unlimited
-        </button>
-        {!isRankUnlocked() && (
-        <button className={`ul-tab${activeTab === "stats"     ? " active" : ""}`} onClick={() => navigate("/bb/recall/stats")}>
-          📊 Stats
-        </button>
-        )}
+      <ModeTabs base="/bb/recall" icon="👁">
         <BBRecallInfoPopover />
-      </div>
+      </ModeTabs>
 
       {activeTab === "daily"     && <BBRecallDaily     houseguests={houseguests} stintMap={stintMap} eligiblePool={houseguests} onNavigateStats={() => navigate("/bb/recall/stats")} />}
       {activeTab === "archive"   && <BBRecallArchive   stintMap={stintMap} eligiblePool={houseguests} onNavigateStats={() => navigate("/bb/recall/stats")} />}

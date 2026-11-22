@@ -10,13 +10,11 @@ export const SHOWS = {
     id: "sv", name: "Survivor", base: "/rank", db: "", store: "",
     accent: "#e8742a", deep: "#b3541a", emoji: "🏝️", title: "Survivordle Rank",
     short: "S", winnerWord: "Sole Survivor", crowd: "tribe", markTier: "S",
-    next: [["/", "🏝️ Daily Survivordle"], ["/connections", "⛓️ Connections"]],
   },
   bb: {
     id: "bb", name: "Big Brother", base: "/bb/rank", db: "bb_", store: "bb_",
     accent: "#5aaedd", deep: "#1a6fbf", emoji: "👁️", title: "Big Brotherdle Rank",
     short: "BB", winnerWord: "Big Brother winner", crowd: "house", markTier: "B",
-    next: [["/bb", "👁️ Daily Big Brotherdle"], ["/bb/recall", "BB Recall"]],
   },
 };
 

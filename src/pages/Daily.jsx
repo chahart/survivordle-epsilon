@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import ModeTabs from "../components/ModeTabs";
 import { useNavigate } from "react-router-dom";
 import { getDailyAnswer, getPuzzleNumber, msUntilMidnightET } from "../shared/gameLogic";
 import { loadTodayGame, saveCompletedGame, saveMidGame, loadStorage, saveStorage } from "../shared/storage";
@@ -66,6 +67,8 @@ export default function Daily({ contestants, colorblind }) {
         </div>
         <div className="tagline">Guess the Survivor Castaway &nbsp;·&nbsp; #{puzzleNum}</div>
       </header>
+
+      <ModeTabs base="" legacy={false} />
 
       <GameBoard
         key={puzzleNum}

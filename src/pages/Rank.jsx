@@ -3,13 +3,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   winnersOf, seasonItems, newSession, syncSession, replay, choose, undo,
   currentRanking, moveItem, seasonsOf, isDone, toSortSession, playersOf, shuffledIds,
-  dailyMatchup, etToday, streakOf, templateItems, returneesOf, bbLists, bbCast,
+  templateItems, returneesOf, bbLists, bbCast,
 } from "../shared/rank";
 import { SHOWS, show, setShow, rp } from "../shared/rankShow";
 import TIER_TEMPLATES from "../shared/tierTemplates.json";
 import {
   loadRankSession, saveRankSession, clearRankSession,
-  getRankAnonId, getSubmittedSig, setSubmittedSig, loadDailyVotes,
+  getRankAnonId, getSubmittedSig, setSubmittedSig,
 } from "../shared/rankStorage";
 import { submitRankRemote } from "../shared/rankApi";
 import { RANK_CSS, Matchup, RankList, Leaderboard, SeasonPicker, ShareButtons, TribeCompare, KeepPlaying } from "../components/RankParts";
@@ -161,15 +161,6 @@ function Chooser({ navigate, lists, contestants, templates }) {
     };
   }, [lists]);
   const [peek, setPeek] = useState("winners");
-  // Status at a glance: voted or not, and the streak at stake.
-  const todayLine = useMemo(() => {
-    const m = dailyMatchup(etToday(), lists);
-    if (!m) return "One vote a day. See how everyone split.";
-    const votes = loadDailyVotes();
-    const streak = streakOf(votes, m.num);
-    if (votes[m.num] != null) return `✓ Voted today${streak > 1 ? ` · 🔥 ${streak}-day streak` : ""}. See how everyone split.`;
-    return streak ? `Vote to keep your 🔥 ${streak}-day streak alive.` : "One vote a day. See how everyone split.";
-  }, [lists]);
   const card = (to, t, d) => (
     <button key={to} className="rk-big" onClick={() => navigate(to)}>
       <div className="t">{t}</div>
@@ -188,7 +179,7 @@ function Chooser({ navigate, lists, contestants, templates }) {
       </div>
       <h1>Rank</h1>
       <div className="rk-sub">The community's {show().name} rankings. Heavy spoilers ahead.</div>
-      {card(rp("/today"), "Today's Matchup", todayLine)}
+      {lists.seasons.length > 0 && <RankToday lists={lists} navigate={navigate} inline />}
       <div className="rk-hrow">
         <div className="rk-h2">Tier lists</div>
         <button className="rk-link" onClick={() => navigate(rp("/tiers"))}>See all</button>
@@ -484,7 +475,7 @@ function Results({ kind, cfg, session, byId, bySeason, update, navigate, base, t
       {session.mode === "sort" && (
         <div className="rk-row">
           <button key={sentSig === mySig} className={`rk-btn primary${sentSig === mySig ? " rk-pop" : ""}`} disabled={busy || sentSig === mySig} onClick={submitNow}>
-            {sentSig === mySig ? "Submitted to consensus ✓" : busy ? "Submitting…" : "Submit to consensus"}
+            {sentSig === mySig ? "Submitted to consensus" : busy ? "Submitting…" : "Submit to consensus"}
           </button>
           {failed && <div className="rk-note">Couldn't submit. Try again.</div>}
         </div>
@@ -493,7 +484,7 @@ function Results({ kind, cfg, session, byId, bySeason, update, navigate, base, t
       <div className="rk-row">
         <button className="rk-btn" onClick={() => navigate(base)}>Consensus ranking</button>
       </div>
-      <KeepPlaying navigate={navigate} skip={[base]} />
+      <KeepPlaying skip={[base]} />
     </>
   );
 }
