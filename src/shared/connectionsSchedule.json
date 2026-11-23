@@ -126,6 +126,12 @@
 [{ "difficulty": 1, "category": "ELIMINATED VIA DUOS TWIST", "items": ["CHRISSY HOFBECK", "COACH WADE", "DANNY KILBY", "KRISTIN FLICKINGER"] },
 { "difficulty": 2, "category": "YOUNGEST WINNERS", "items": ["FABIO BIRZA", "JENNA MORASCA", "SOPHIE CLARKE", "TODD HERZOG"] },
 { "difficulty": 3, "category": "EXACTLY ONE JURY VOTE", "items": ["CASSIDY CLARK", "MIKE TURNER", "SAGE AHRENS-NICHOLS", "WOO HWANG"] },
-{ "difficulty": 4, "category": "FARMERS", "items": ["CHICKEN MORRIS", "LEWIS KELLY", "RALPH KISER", "TOM BUCHANAN"] }]}
+{ "difficulty": 4, "category": "FARMERS", "items": ["CHICKEN MORRIS", "LEWIS KELLY", "RALPH KISER", "TOM BUCHANAN"] }]},
+
+{"date": "2026-11-25","title": "Thanks for the Souvenir",
+"groups": [{ "difficulty": 1, "category": "ORIGINAL TADHANA TRIBE MEMBERS", "items": ["CIERA EASTIN", "LAURA BONEHAM", "MARISSA PETERSON", "VYTAS BASKAUSKAS"] },
+{ "difficulty": 2, "category": "WINNERS OF ALL-RETURNEE SEASONS", "items": ["AMBER MARIANO", "JEREMY COLLINS", "SANDRA DIAZ-TWINE", "TONY VLACHOS"] },
+{ "difficulty": 3, "category": "NEW ERA 5TH PLACERS", "items": ["JULIE ALLEY", "KRISTINA MILLS", "MITCH GUERRA", "RICARD FOYE"] },
+{ "difficulty": 4, "category": "CONTESTANTS OVER 6 FEET 8 INCHES (203CM)", "items": ["CLIFF ROBINSON", "IAN ROSENBERGER", "MITCHELL OLSON", "SCOT POLLARD"] }]}
   ]
 }
